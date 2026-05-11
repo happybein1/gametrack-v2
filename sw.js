@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voice-umpire-v2-20260511';
+const CACHE_NAME = 'voice-umpire-v2-20260511-2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
