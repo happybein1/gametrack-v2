@@ -1530,7 +1530,9 @@
 
         // ===== ASR ERROR CORRECTIONS =====
         // Web Speech API often merges numbers: "1-0" -> "10", "15-15" -> "1515"
-        // Try to split common merged patterns
+        // Strip trailing punctuation that ASR adds
+        const cleanStripped = clean.replace(/[.,;:!?]$/, '');
+
         const asrFixes = [
             // "10" at start of score statement likely means "1-0" (especially in squash/tt)
             { pattern: /^10$/, fix: '1 0' },
@@ -1539,10 +1541,8 @@
             { pattern: / 10 /, fix: ' 1 0 ' },
             // "1515" -> "15 15" (tennis fifteen all)
             { pattern: /^1515$/, fix: '15 15' },
-            { pattern: /^1515 /, fix: '15 15 ' },
             // "1530" -> "15 30"
             { pattern: /^1530$/, fix: '15 30' },
-            { pattern: /^1530 /, fix: '15 30 ' },
             // "1540" -> "15 40"
             { pattern: /^1540$/, fix: '15 40' },
             // "3015" -> "30 15"
@@ -1555,10 +1555,8 @@
             { pattern: /^4030$/, fix: '40 30' },
             // "1111" -> "11 11" (table tennis deuce)
             { pattern: /^1111$/, fix: '11 11' },
-            { pattern: /^1111 /, fix: '11 11 ' },
             // "119" -> "11 9"
             { pattern: /^119$/, fix: '11 9' },
-            { pattern: /^119 /, fix: '11 9 ' },
             // "911" -> "9 11"
             { pattern: /^911$/, fix: '9 11' },
             // "1010" -> "10 10"
@@ -1571,8 +1569,8 @@
 
         for (let i = 0; i < asrFixes.length; i++) {
             const fix = asrFixes[i];
-            if (fix.pattern.test(clean)) {
-                clean = clean.replace(fix.pattern, fix.fix);
+            if (fix.pattern.test(cleanStripped)) {
+                clean = cleanStripped.replace(fix.pattern, fix.fix);
                 logVoice('ASR Fix', '"' + transcript + '" -> "' + clean + '"');
                 break;
             }
