@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0f0f23">
-    <title>Voice Umpire v2.7</title>
+    <title>Voice Umpire v2.8</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <style>
         :root {
             --bg: #0f0f23; --bg2: #1a1a2e; --card: #16213e; --accent: #00d4aa;
-            --warn: #ffd93d; --danger: #ff6b6b; --text: #fff; --muted: #a0a0b0;
+            --warn: #ffd93d; --danger: #ff6b6b; --info: #74b9ff; --text: #fff; --muted: #a0a0b0;
             --border: #2a2a40;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -22,17 +22,19 @@
         .status.idle { background: #666680; color: var(--bg); }
         .status.listening { background: var(--accent); color: var(--bg); animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        .scoreboard { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 20px 16px; }
+        .lang-bar { display: flex; gap: 8px; padding: 8px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .lang-bar::-webkit-scrollbar { display: none; }
+        .lang-btn { padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .lang-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .scoreboard { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 16px; }
         .player-card { flex: 1; max-width: 300px; background: var(--card); border-radius: 20px; padding: 20px 16px; text-align: center; border: 2px solid var(--border); }
         .player-card.active { border-color: var(--accent); box-shadow: 0 0 25px rgba(0,212,170,0.15); }
-        .player-card.winner { border-color: var(--warn); box-shadow: 0 0 35px rgba(255,217,61,0.25); animation: win 1s ease infinite alternate; }
-        @keyframes win { from{transform:scale(1)} to{transform:scale(1.02)} }
         .player-name { background: transparent; border: none; color: var(--muted); text-align: center; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; width: 100%; font-weight: 600; outline: none; }
         .player-name:focus { color: var(--text); border-bottom: 1px dashed var(--accent); }
-        .big-number { font-size: clamp(60px, 14vw, 100px); font-weight: 800; line-height: 1; margin: 4px 0; }
+        .big-number { font-size: clamp(56px, 13vw, 90px); font-weight: 800; line-height: 1; margin: 4px 0; }
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
         .btn-row { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
-        .btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn:active { transform: scale(0.92); background: var(--accent); border-color: var(--accent); }
         .btn.minus:active { background: var(--danger); border-color: var(--danger); }
         .controls { background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -40,15 +42,23 @@
         .main-btn.start { background: linear-gradient(135deg, var(--accent), #00b894); color: var(--bg); }
         .main-btn.stop { background: linear-gradient(135deg, var(--danger), #ee5a5a); color: #fff; }
         .secondary { display: flex; gap: 8px; }
-        .sec-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+        .sec-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
         .sec-btn:active { background: var(--border); color: var(--text); }
-        .history { flex: 1; background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; overflow-y: auto; min-height: 120px; }
-        .history-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+        .history { flex: 1; background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; overflow-y: auto; min-height: 100px; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .history-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+        .history-actions { display: flex; gap: 6px; }
+        .history-actions button { padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+        .history-actions button:active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
         .entry { padding: 8px 12px; background: var(--card); border-radius: 10px; margin-bottom: 6px; font-size: 13px; }
-        .entry-time { color: #666680; font-size: 10px; }
+        .entry-time { color: #666680; font-size: 10px; margin-right: 6px; }
         .entry-voice { color: var(--accent); font-weight: 600; }
         .entry-manual { color: var(--warn); font-weight: 600; }
-        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); color: var(--text); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid var(--border); opacity: 0; transition: all 0.3s; z-index: 2000; pointer-events: none; }
+        .entry-ai { color: var(--info); font-weight: 600; }
+        .ai-panel { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .ai-panel h4 { color: var(--info); font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .ai-panel pre { white-space: pre-wrap; font-size: 12px; line-height: 1.5; color: var(--text); font-family: inherit; }
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); color: var(--text); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid var(--border); opacity: 0; transition: all 0.3s; z-index: 2000; pointer-events: none; max-width: 90vw; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .install-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: var(--bg); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 3000; transform: translateY(100%); transition: transform 0.3s; }
         .install-banner.show { transform: translateY(0); }
@@ -58,8 +68,20 @@
 </head>
 <body>
     <div class="header">
-        <h1>🎙️ Voice Umpire <span class="version">v2.7</span></h1>
+        <h1>🎙️ Voice Umpire <span class="version">v2.8</span></h1>
         <div class="status idle" id="status">Idle</div>
+    </div>
+    <div class="lang-bar" id="lang-bar">
+        <button class="lang-btn active" data-lang="en-US" onclick="setLang('en-US')">🇺🇸 EN</button>
+        <button class="lang-btn" data-lang="es-ES" onclick="setLang('es-ES')">🇪🇸 ES</button>
+        <button class="lang-btn" data-lang="fr-FR" onclick="setLang('fr-FR')">🇫🇷 FR</button>
+        <button class="lang-btn" data-lang="de-DE" onclick="setLang('de-DE')">🇩🇪 DE</button>
+        <button class="lang-btn" data-lang="it-IT" onclick="setLang('it-IT')">🇮🇹 IT</button>
+        <button class="lang-btn" data-lang="pt-BR" onclick="setLang('pt-BR')">🇧🇷 PT</button>
+        <button class="lang-btn" data-lang="ja-JP" onclick="setLang('ja-JP')">🇯🇵 JP</button>
+        <button class="lang-btn" data-lang="ko-KR" onclick="setLang('ko-KR')">🇰🇷 KR</button>
+        <button class="lang-btn" data-lang="zh-CN" onclick="setLang('zh-CN')">🇨🇳 CN</button>
+        <button class="lang-btn" data-lang="nl-NL" onclick="setLang('nl-NL')">🇳🇱 NL</button>
     </div>
     <div class="scoreboard">
         <div class="player-card" id="p1-card">
@@ -70,7 +92,7 @@
                 <button class="btn minus" onclick="adjust(1,'sets',-1)">−</button>
                 <button class="btn" onclick="adjust(1,'sets',1)">+</button>
             </div>
-            <div class="big-number" id="p1-games" style="font-size:36px;margin-top:12px;">0</div>
+            <div class="big-number" id="p1-games" style="font-size:32px;margin-top:10px;">0</div>
             <div class="label">Games</div>
             <div class="btn-row">
                 <button class="btn minus" onclick="adjust(1,'games',-1)">−</button>
@@ -85,7 +107,7 @@
                 <button class="btn minus" onclick="adjust(2,'sets',-1)">−</button>
                 <button class="btn" onclick="adjust(2,'sets',1)">+</button>
             </div>
-            <div class="big-number" id="p2-games" style="font-size:36px;margin-top:12px;">0</div>
+            <div class="big-number" id="p2-games" style="font-size:32px;margin-top:10px;">0</div>
             <div class="label">Games</div>
             <div class="btn-row">
                 <button class="btn minus" onclick="adjust(2,'games',-1)">−</button>
@@ -101,22 +123,35 @@
             <button class="sec-btn" onclick="resetMatch()">↺ Reset</button>
             <button class="sec-btn" onclick="swapPlayers()">⇄ Swap</button>
             <button class="sec-btn" onclick="undoLast()">↩ Undo</button>
+            <button class="sec-btn" onclick="exportHistory()">⬇ Export</button>
+            <button class="sec-btn" onclick="analyzeWithAI()">🤖 AI Analysis</button>
         </div>
     </div>
     <div class="history" id="history">
-        <div class="history-title">📋 History — tap Start Umpire and speak</div>
+        <div class="history-header">
+            <span class="history-title">📋 History</span>
+            <span class="history-actions">
+                <button onclick="clearHistory()">Clear</button>
+            </span>
+        </div>
     </div>
     <div class="toast" id="toast"></div>
     <div class="install-banner" id="install-banner"><span>📲 Install Voice Umpire for offline use</span><button onclick="installPWA()">Install</button></div>
     <video id="no-sleep" loop muted playsinline><source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4"></video>
     <script>
-    const APP_VERSION = '2.7';
-    const APP_BUILD = '2026-05-11-7';
+    const APP_VERSION = '2.8';
+    const APP_BUILD = '2026-05-11-8';
+
+    const LANG_NAMES = {
+        'en-US': 'English', 'es-ES': 'Español', 'fr-FR': 'Français', 'de-DE': 'Deutsch',
+        'it-IT': 'Italiano', 'pt-BR': 'Português', 'ja-JP': '日本語', 'ko-KR': '한국어',
+        'zh-CN': '中文', 'nl-NL': 'Nederlands'
+    };
 
     let state = {
         p1: { sets: 0, games: 0 }, p2: { sets: 0, games: 0 },
         p1Name: 'Player 1', p2Name: 'Player 2',
-        history: [], isListening: false, recognition: null, wakeLock: null,
+        history: [], entries: [], isListening: false, recognition: null, wakeLock: null,
         settings: { autorestart: true, lang: 'en-US' },
         consecutiveErrors: 0, lastCmdTime: 0
     };
@@ -142,6 +177,17 @@
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
     }
 
+    function setLang(lang) {
+        state.settings.lang = lang;
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+        if (state.recognition) {
+            state.recognition.lang = lang;
+            if (state.isListening) { stopListening(); setTimeout(toggleListening, 300); }
+        }
+        saveSettings();
+        showToast('Language: ' + LANG_NAMES[lang], 'success');
+    }
+
     function adjust(player, type, delta) {
         saveHist();
         const t = player === 1 ? state.p1 : state.p2;
@@ -149,33 +195,29 @@
         updateUI();
         const name = player === 1 ? state.p1Name : state.p2Name;
         const label = type === 'sets' ? 'set' : 'game';
-        const action = (delta > 0 ? 'Added ' : 'Removed ') + label + ' for ' + name;
-        addHistory('manual', action);
+        const action = (delta > 0 ? '+' : '−') + '1 ' + label + ' ' + name;
+        addEntry('manual', action);
         speak(action);
     }
 
     function updateUI() {
         els.p1Sets.textContent = state.p1.sets; els.p2Sets.textContent = state.p2.sets;
         els.p1Games.textContent = state.p1.games; els.p2Games.textContent = state.p2.games;
-        els.p1Card.classList.remove('active','winner'); els.p2Card.classList.remove('active','winner');
+        els.p1Card.classList.remove('active'); els.p2Card.classList.remove('active');
         if (state.p1.sets > state.p2.sets) els.p1Card.classList.add('active');
         else if (state.p2.sets > state.p1.sets) els.p2Card.classList.add('active');
     }
 
     function saveHist() {
-        state.history.push({
-            p1: { ...state.p1 }, p2: { ...state.p2 },
-            p1Name: state.p1Name, p2Name: state.p2Name, ts: Date.now()
-        });
+        state.history.push({ p1: { ...state.p1 }, p2: { ...state.p2 }, p1Name: state.p1Name, p2Name: state.p2Name, ts: Date.now() });
         if (state.history.length > 30) state.history.shift();
     }
 
     function resetMatch() {
         saveHist();
-        state.p1.sets = 0; state.p1.games = 0;
-        state.p2.sets = 0; state.p2.games = 0;
+        state.p1.sets = 0; state.p1.games = 0; state.p2.sets = 0; state.p2.games = 0;
         updateUI();
-        addHistory('manual', 'Match reset');
+        addEntry('manual', 'Match reset');
         speak('Match reset');
     }
 
@@ -184,11 +226,10 @@
         const ts = state.p1.sets, tg = state.p1.games;
         state.p1.sets = state.p2.sets; state.p1.games = state.p2.games;
         state.p2.sets = ts; state.p2.games = tg;
-        const tn = state.p1Name;
-        state.p1Name = state.p2Name; state.p2Name = tn;
+        const tn = state.p1Name; state.p1Name = state.p2Name; state.p2Name = tn;
         els.p1Name.value = state.p1Name; els.p2Name.value = state.p2Name;
         updateUI();
-        addHistory('manual', 'Players swapped');
+        addEntry('manual', 'Players swapped');
         speak('Players swapped');
     }
 
@@ -199,35 +240,102 @@
         state.p1Name = last.p1Name; state.p2Name = last.p2Name;
         els.p1Name.value = state.p1Name; els.p2Name.value = state.p2Name;
         updateUI();
-        addHistory('manual', 'Undo');
+        addEntry('manual', 'Undo');
         speak('Undo');
     }
 
-    function addHistory(type, text) {
+    function addEntry(type, text) {
         const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const entry = document.createElement('div');
-        entry.className = 'entry';
-        const cls = type === 'voice' ? 'entry-voice' : 'entry-manual';
-        entry.innerHTML = '<span class="entry-time">' + time + '</span> <span class="' + cls + '">' + type.toUpperCase() + ':</span> ' + text;
-        // Insert after title
-        const title = els.history.querySelector('.history-title');
-        if (title && title.nextSibling) els.history.insertBefore(entry, title.nextSibling);
-        else els.history.appendChild(entry);
-        while (els.history.children.length > 25) els.history.removeChild(els.history.lastChild);
+        const entry = { type, text, time, ts: Date.now() };
+        state.entries.unshift(entry);
+        renderEntry(entry);
+        while (state.entries.length > 50) { state.entries.pop(); els.history.removeChild(els.history.lastChild); }
     }
 
-    // ==================== VOICE: just record what was said ====================
+    function renderEntry(entry) {
+        const div = document.createElement('div');
+        div.className = 'entry';
+        const cls = entry.type === 'voice' ? 'entry-voice' : entry.type === 'ai' ? 'entry-ai' : 'entry-manual';
+        div.innerHTML = '<span class="entry-time">' + entry.time + '</span><span class="' + cls + '">' + entry.type.toUpperCase() + ':</span> ' + escapeHtml(entry.text);
+        const header = els.history.querySelector('.history-header');
+        if (header && header.nextSibling) els.history.insertBefore(div, header.nextSibling);
+        else els.history.appendChild(div);
+    }
+
+    function escapeHtml(t) {
+        const d = document.createElement('div'); d.textContent = t; return d.innerHTML;
+    }
+
+    function clearHistory() {
+        state.entries = [];
+        const header = els.history.querySelector('.history-header');
+        els.history.innerHTML = ''; if (header) els.history.appendChild(header);
+        showToast('History cleared', 'success');
+    }
+
+    // ==================== EXPORT ====================
+    function exportHistory() {
+        const data = {
+            app: 'Voice Umpire', version: APP_VERSION, build: APP_BUILD,
+            exportedAt: new Date().toISOString(),
+            players: { p1: state.p1Name, p2: state.p2Name },
+            currentScore: { p1: state.p1, p2: state.p2 },
+            entries: state.entries
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'voice-umpire-history-' + new Date().toISOString().slice(0,10) + '.json';
+        a.click(); URL.revokeObjectURL(url);
+        showToast('History exported!', 'success');
+    }
+
+    // ==================== AI ANALYSIS ====================
+    function analyzeWithAI() {
+        if (state.entries.length === 0) { showToast('No history to analyze', 'error'); return; }
+        const data = {
+            app: 'Voice Umpire', version: APP_VERSION,
+            players: { p1: state.p1Name, p2: state.p2Name },
+            currentScore: { p1: state.p1, p2: state.p2 },
+            entries: state.entries
+        };
+        const json = JSON.stringify(data, null, 2);
+        const prompt = 'Analyze this sports match data from Voice Umpire. Provide insights on: 1) Match progression and key moments, 2) Player performance patterns, 3) Any notable observations from the voice notes, 4) Suggestions for improvement. Keep it concise and actionable.\n\nDATA:\n' + json;
+
+        // Create analysis entry placeholder
+        addEntry('ai', '⏳ Requesting AI analysis...');
+
+        // Copy to clipboard with instructions
+        navigator.clipboard.writeText(prompt).then(() => {
+            showToast('Analysis prompt copied! Paste into your AI chat.', 'success');
+            // Update the placeholder
+            state.entries[0].text = 'Analysis prompt copied to clipboard. Paste it into Kimi, ChatGPT, or Claude for instant match insights!';
+            refreshHistory();
+        }).catch(() => {
+            // Fallback: show the prompt in a modal/toast for manual copy
+            showToast('Copy failed — check console for prompt', 'error');
+            console.log('=== AI ANALYSIS PROMPT ===');
+            console.log(prompt);
+            console.log('==========================');
+        });
+    }
+
+    function refreshHistory() {
+        const header = els.history.querySelector('.history-header');
+        els.history.innerHTML = ''; if (header) els.history.appendChild(header);
+        state.entries.slice().reverse().forEach(renderEntry);
+    }
+
+    // ==================== VOICE ====================
     function processCommand(t) {
         const now = Date.now();
-        if (now - state.lastCmdTime < 800) return;
+        if (now - state.lastCmdTime < 600) return;
         state.lastCmdTime = now;
-        addHistory('voice', t);
+        addEntry('voice', t);
         state.consecutiveErrors = 0;
-        // Optional: stop on command
-        if (/^(stop|pause|halt)/.test(t)) { stopListening(); addHistory('manual', 'Stopped by voice'); }
+        if (/^(stop|pause|halt)/.test(t)) { stopListening(); addEntry('manual', 'Stopped by voice'); }
     }
 
-    // ==================== SPEECH RECOGNITION ====================
     function setupRecog() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) { showToast('Speech recognition not supported', 'error'); return false; }
@@ -238,7 +346,7 @@
         state.recognition.onstart = () => {
             state.isListening = true; state.consecutiveErrors = 0;
             updateStatus('listening', 'Listening...'); updateMainBtn();
-            addHistory('manual', 'Microphone active');
+            addEntry('manual', '🎙️ Microphone active (' + LANG_NAMES[state.settings.lang] + ')');
         };
         state.recognition.onresult = (e) => {
             const r = e.results[e.results.length-1];
@@ -246,9 +354,9 @@
         };
         state.recognition.onerror = (e) => {
             state.consecutiveErrors++;
-            if (e.error === 'no-speech') addHistory('manual', 'No speech detected');
+            if (e.error === 'no-speech') addEntry('manual', 'No speech detected');
             else if (e.error === 'not-allowed') { updateStatus('error', 'Mic denied'); showToast('Allow microphone access', 'error'); stopListening(); return; }
-            else { updateStatus('error', e.error); addHistory('manual', 'Error: ' + e.error); }
+            else { updateStatus('error', e.error); addEntry('manual', 'Error: ' + e.error); }
             if (state.settings.autorestart && state.isListening && state.consecutiveErrors < 5) {
                 setTimeout(() => { if (state.isListening) safeStart(); }, 500);
             } else if (state.consecutiveErrors >= 5) { updateStatus('error', 'Too many errors'); stopListening(); }
@@ -273,7 +381,7 @@
         if (state.recognition) try { state.recognition.stop(); } catch(e){}
         releaseWakeLock();
         updateStatus('idle', 'Idle'); updateMainBtn();
-        addHistory('manual', 'Stopped listening');
+        addEntry('manual', 'Stopped listening');
     }
 
     async function acquireWakeLock() {
@@ -288,9 +396,9 @@
     function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; window.speechSynthesis.speak(u); }
     function updateStatus(type, text) { els.status.className = 'status ' + type; els.status.textContent = text; }
     function updateMainBtn() { if (state.isListening) { els.mainBtn.className='main-btn stop'; els.btnIcon.textContent='⏹'; els.btnText.textContent='Stop Umpire'; } else { els.mainBtn.className='main-btn start'; els.btnIcon.textContent='▶'; els.btnText.textContent='Start Umpire'; } }
-    function showToast(msg, type) { els.toast.textContent = msg; els.toast.className = 'toast show ' + (type||''); setTimeout(() => els.toast.classList.remove('show'), 2500); }
+    function showToast(msg, type) { els.toast.textContent = msg; els.toast.className = 'toast show ' + (type||''); setTimeout(() => els.toast.classList.remove('show'), 3000); }
 
-    function loadSettings() { try { const s = localStorage.getItem('vu2_settings'); if (s) Object.assign(state.settings, JSON.parse(s)); } catch(e){} }
+    function loadSettings() { try { const s = localStorage.getItem('vu2_settings'); if (s) Object.assign(state.settings, JSON.parse(s)); } catch(e){} setLang(state.settings.lang); }
     function saveSettings() { try { localStorage.setItem('vu2_settings', JSON.stringify(state.settings)); } catch(e){} }
 
     function setupInstall() {

@@ -1,7 +1,7 @@
 {
   "name": "Voice Umpire",
   "short_name": "Umpire",
-  "description": "Simple voice-recording scoreboard with manual set and game tracking.",
+  "description": "Simple voice-recording scoreboard with manual scoring, multi-language support, and AI analysis export.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f23",
