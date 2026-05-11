@@ -690,6 +690,7 @@
                 ['"Minus [name]"', '-1 point'],
                 ['"Reset"', 'Reset match'],
                 ['"New game" / "Next game" / "Game over"', 'Start next game (keep sets)'],
+                ['"Change serve" / "Your serve"', 'Switch who is serving'],
                 ['"New set" / "Next set" / "Set over"', 'Start next set (keep match)'],
                 ['"Swap" / "Switch"', 'Swap sides'],
                 ['"Undo"', 'Undo last action'],
@@ -707,7 +708,7 @@
             announceFormat: (p1, p2, names) => p1.points + '-' + p2.points,
             pointToDisplay: (points) => String(points),
             commands: [
-                ['"Point [name]"', '+1 point (hand-in/hand-out)'],
+                ['"Point [name]"', '+1 point (server keeps serve if wins, loses if loses)'],
                 ['"3-2" / "11-9" / "Five Three"', 'Set score directly'],
                 ['"Game [name]"', 'Award game'],
                 ['"What is the score"', 'Announce score'],
@@ -715,6 +716,7 @@
                 ['"Minus [name]"', '-1 point'],
                 ['"Reset"', 'Reset match'],
                 ['"New game" / "Next game" / "Game over"', 'Start next game'],
+                ['"Change serve" / "Your serve"', 'Switch server'],
                 ['"Swap" / "Switch"', 'Swap sides'],
                 ['"Undo"', 'Undo last'],
                 ['"Stop"', 'Stop listening']
@@ -739,6 +741,7 @@
                 ['"Minus [name]"', '-1 point'],
                 ['"Reset"', 'Reset match'],
                 ['"New game" / "Next game" / "Game over"', 'Start next game'],
+                ['"Change serve" / "Your serve"', 'Switch server'],
                 ['"Swap"', 'Swap sides'],
                 ['"Undo"', 'Undo'],
                 ['"Stop"', 'Stop']
@@ -763,6 +766,7 @@
                 ['"Minus [name]"', '-1 point'],
                 ['"Reset"', 'Reset'],
                 ['"New game" / "Next game" / "Game over"', 'Next game'],
+                ['"Change serve" / "Your serve"', 'Switch server'],
                 ['"New set" / "Next set" / "Set over"', 'Next set'],
                 ['"Swap"', 'Swap'],
                 ['"Undo"', 'Undo'],
@@ -797,7 +801,10 @@
         },
         consecutiveErrors: 0,
         lastCommandTime: 0,
-        servePlayer: 1,
+        servePlayer: 1,        // Who is serving THIS point (changes during game)
+        gameServer: 1,           // Who started serving THIS game (fixed for the game)
+        setServer: 1,          // Who served first in THIS set (for tracking rotation)
+        lastPointWinner: null,  // Who won the LAST point (for squash serve tracking)
         serveCount: 0,
         matchComplete: false
     };
@@ -922,6 +929,7 @@
         const rules = getRules();
         if (delta > 0) {
             target.points++;
+            state.lastPointWinner = player;  // Track who won this point (for squash serve)
             if (checkGameWin(target, opponent, rules)) {
                 awardGame(player, rules);
                 return;
@@ -977,13 +985,27 @@
             awardSet(winner, rules);
             return;
         }
+        // Rotate server for next game based on sport rules
+        if (state.mode === 'tennis') {
+            // Tennis: receiver of this game serves next game
+            state.gameServer = state.gameServer === 1 ? 2 : 1;
+        } else if (state.mode === 'squash') {
+            // Squash: winner of this game serves first in next game
+            state.gameServer = winner;
+        } else {
+            // Table tennis/Custom: alternate
+            state.gameServer = state.gameServer === 1 ? 2 : 1;
+        }
+        state.servePlayer = state.gameServer;
+        state.lastPointWinner = null;
         updatePointDisplays();
         updateServeIndicator();
         updateUI();
+        const nextServerName = state.gameServer === 1 ? state.p1Name : state.p2Name;
         showToast(announceText, 'announce');
-        if (state.settings.tts) speak(announceText + '. Next game.');
-        logVoice('Game', announceText + ' — Next game ready');
-        els.matchInfoText.innerHTML = '<span class="announcer">Next game — ' + state.p1Name + ' to serve</span>';
+        if (state.settings.tts) speak(announceText + '. Next game. ' + nextServerName + ' to serve.');
+        logVoice('Game', announceText + ' — Next game: ' + nextServerName + ' serving');
+        els.matchInfoText.innerHTML = '<span class="announcer">Next game — ' + nextServerName + ' to serve</span>';
     }
 
     function awardSet(winner, rules) {
@@ -1009,13 +1031,19 @@
             els.matchInfoText.innerHTML = '<span class="announcer">Match complete — ' + matchText + ' wins!</span>';
             return;
         }
+        // Set up server for next set
+        state.setServer = state.setServer === 1 ? 2 : 1;
+        state.gameServer = state.setServer;
+        state.servePlayer = state.setServer;
+        state.lastPointWinner = null;
         updatePointDisplays();
         updateServeIndicator();
         updateUI();
+        const nextSetServer = state.gameServer === 1 ? state.p1Name : state.p2Name;
         showToast(announceText, 'announce');
-        if (state.settings.tts) speak(announceText + '. Next set.');
-        logVoice('Set', announceText + ' — Next set ready');
-        els.matchInfoText.innerHTML = '<span class="announcer">Next set — ' + state.p1Name + ' to serve</span>';
+        if (state.settings.tts) speak(announceText + '. Next set. ' + nextSetServer + ' to serve.');
+        logVoice('Set', announceText + ' — Next set: ' + nextSetServer + ' serving');
+        els.matchInfoText.innerHTML = '<span class="announcer">Next set — ' + nextSetServer + ' to serve</span>';
     }
 
     function updatePointDisplays() {
@@ -1027,7 +1055,8 @@
     function announceScore() {
         const rules = getRules();
         const text = rules.announceFormat(state.p1, state.p2, { p1: state.p1Name, p2: state.p2Name });
-        els.matchInfoText.innerHTML = '<span class="announcer">' + text + '</span>';
+        const serverName = state.servePlayer === 1 ? state.p1Name : state.p2Name;
+        els.matchInfoText.innerHTML = '<span class="announcer">' + text + '</span> <span style="color:var(--text-muted);font-size:11px;">(' + serverName + ' serving)</span>';
         if (state.settings.tts) speak(text);
     }
 
@@ -1038,6 +1067,9 @@
             p1Name: state.p1Name,
             p2Name: state.p2Name,
             servePlayer: state.servePlayer,
+            gameServer: state.gameServer,
+            setServer: state.setServer,
+            lastPointWinner: state.lastPointWinner,
             serveCount: state.serveCount,
             matchComplete: state.matchComplete,
             timestamp: Date.now()
@@ -1050,6 +1082,9 @@
         state.p1.points = 0; state.p1.games = 0; state.p1.sets = 0;
         state.p2.points = 0; state.p2.games = 0; state.p2.sets = 0;
         state.servePlayer = 1;
+        state.gameServer = 1;
+        state.setServer = 1;
+        state.lastPointWinner = null;
         state.serveCount = 0;
         state.matchComplete = false;
         updatePointDisplays();
@@ -1066,13 +1101,17 @@
         state.p1.points = 0;
         state.p2.points = 0;
         state.serveCount = 0;
+        state.lastPointWinner = null;
+        // Rotate game server: receiver of last game serves next game
+        state.gameServer = state.gameServer === 1 ? 2 : 1;
+        state.servePlayer = state.gameServer;
         updatePointDisplays();
         updateServeIndicator();
         updateUI();
-        const server = state.servePlayer === 1 ? state.p1Name : state.p2Name;
-        els.matchInfoText.innerHTML = '<span class="announcer">New game — ' + server + ' to serve</span>';
-        logVoice('Action', 'New game started');
-        if (state.settings.tts) speak('New game. ' + server + ' to serve.');
+        const serverName = state.gameServer === 1 ? state.p1Name : state.p2Name;
+        els.matchInfoText.innerHTML = '<span class="announcer">New game — ' + serverName + ' to serve</span>';
+        logVoice('Action', 'New game — ' + serverName + ' serving');
+        if (state.settings.tts) speak('New game. ' + serverName + ' to serve.');
     }
 
     function newSet() {
@@ -1080,13 +1119,19 @@
         state.p1.points = 0; state.p1.games = 0;
         state.p2.points = 0; state.p2.games = 0;
         state.serveCount = 0;
+        state.lastPointWinner = null;
+        // In tennis, players can choose who serves first in a new set
+        // We keep the same rotation pattern: alternate set-first-server
+        state.setServer = state.setServer === 1 ? 2 : 1;
+        state.gameServer = state.setServer;
+        state.servePlayer = state.setServer;
         updatePointDisplays();
         updateServeIndicator();
         updateUI();
-        const server = state.servePlayer === 1 ? state.p1Name : state.p2Name;
-        els.matchInfoText.innerHTML = '<span class="announcer">New set — ' + server + ' to serve</span>';
-        logVoice('Action', 'New set started');
-        if (state.settings.tts) speak('New set. ' + server + ' to serve.');
+        const serverName = state.gameServer === 1 ? state.p1Name : state.p2Name;
+        els.matchInfoText.innerHTML = '<span class="announcer">New set — ' + serverName + ' to serve</span>';
+        logVoice('Action', 'New set — ' + serverName + ' serving first');
+        if (state.settings.tts) speak('New set. ' + serverName + ' to serve.');
     }
 
     function undoLast() {
@@ -1100,6 +1145,9 @@
         state.p1Name = last.p1Name;
         state.p2Name = last.p2Name;
         state.servePlayer = last.servePlayer;
+        state.gameServer = last.gameServer || state.gameServer;
+        state.setServer = last.setServer || state.setServer;
+        state.lastPointWinner = last.lastPointWinner !== undefined ? last.lastPointWinner : null;
         state.serveCount = last.serveCount;
         state.matchComplete = last.matchComplete;
         els.p1Name.value = state.p1Name;
@@ -1143,19 +1191,41 @@
             els.p2Serve.classList.remove('visible');
             return;
         }
-        const rules = getRules();
         const totalPoints = state.p1.points + state.p2.points;
+
         if (state.mode === 'tennis') {
-            if (state.p1.points >= 3 && state.p2.points >= 3) {
-                state.servePlayer = (totalPoints % 2 === 0) ? 1 : 2;
-            } else {
-                state.servePlayer = (Math.floor(totalPoints / 2) % 2 === 0) ? 1 : 2;
+            // Tennis: ONE player serves the ENTIRE game.
+            // The gameServer is fixed for the whole game.
+            // Players switch SIDES every 2 points, but server stays the same.
+            state.servePlayer = state.gameServer;
+        } else if (state.mode === 'squash') {
+            // Squash PAR: server serves until they LOSE a rally.
+            // If server wins rally: keeps serve.
+            // If receiver wins rally: becomes server.
+            // We track this via lastPointWinner.
+            if (state.lastPointWinner !== null && state.lastPointWinner !== state.servePlayer) {
+                // Receiver won the last point, so they become server
+                state.servePlayer = state.lastPointWinner;
             }
+            // If server won or no last point, servePlayer stays the same
         } else if (state.mode === 'tabletennis') {
-            state.servePlayer = (Math.floor(totalPoints / 2) % 2 === 0) ? 1 : 2;
+            // Table tennis: alternate every 2 points
+            // At 10-10, alternate every point
+            const p1p = state.p1.points;
+            const p2p = state.p2.points;
+            if (p1p >= 10 && p2p >= 10) {
+                // Deuce: alternate every point
+                state.servePlayer = (totalPoints % 2 === 0) ? state.gameServer : (state.gameServer === 1 ? 2 : 1);
+            } else {
+                // Normal: alternate every 2 points
+                const serverIndex = Math.floor(totalPoints / 2) % 2;
+                state.servePlayer = (serverIndex === 0) ? state.gameServer : (state.gameServer === 1 ? 2 : 1);
+            }
         } else {
+            // Custom: alternate every point
             state.servePlayer = (totalPoints % 2 === 0) ? 1 : 2;
         }
+
         els.p1Serve.classList.toggle('visible', state.servePlayer === 1);
         els.p2Serve.classList.toggle('visible', state.servePlayer === 2);
     }
@@ -1448,7 +1518,57 @@
     }
 
     function parseNumericScore(transcript) {
-        const clean = transcript.replace(/[\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
+        let clean = transcript.replace(/[\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
+
+        // ===== ASR ERROR CORRECTIONS =====
+        // Web Speech API often merges numbers: "1-0" -> "10", "15-15" -> "1515"
+        // Try to split common merged patterns
+        const asrFixes = [
+            // "10" at start of score statement likely means "1-0" (especially in squash/tt)
+            { pattern: /^10$/, fix: '1 0' },
+            { pattern: /^10 /, fix: '1 0 ' },
+            { pattern: / 10$/, fix: ' 1 0' },
+            { pattern: / 10 /, fix: ' 1 0 ' },
+            // "1515" -> "15 15" (tennis fifteen all)
+            { pattern: /^1515$/, fix: '15 15' },
+            { pattern: /^1515 /, fix: '15 15 ' },
+            // "1530" -> "15 30"
+            { pattern: /^1530$/, fix: '15 30' },
+            { pattern: /^1530 /, fix: '15 30 ' },
+            // "1540" -> "15 40"
+            { pattern: /^1540$/, fix: '15 40' },
+            // "3015" -> "30 15"
+            { pattern: /^3015$/, fix: '30 15' },
+            // "4015" -> "40 15"
+            { pattern: /^4015$/, fix: '40 15' },
+            // "3040" -> "30 40"
+            { pattern: /^3040$/, fix: '30 40' },
+            // "4030" -> "40 30"
+            { pattern: /^4030$/, fix: '40 30' },
+            // "1111" -> "11 11" (table tennis deuce)
+            { pattern: /^1111$/, fix: '11 11' },
+            { pattern: /^1111 /, fix: '11 11 ' },
+            // "119" -> "11 9"
+            { pattern: /^119$/, fix: '11 9' },
+            { pattern: /^119 /, fix: '11 9 ' },
+            // "911" -> "9 11"
+            { pattern: /^911$/, fix: '9 11' },
+            // "1010" -> "10 10"
+            { pattern: /^1010$/, fix: '10 10' },
+            // "1012" -> "10 12"
+            { pattern: /^1012$/, fix: '10 12' },
+            // "1210" -> "12 10"
+            { pattern: /^1210$/, fix: '12 10' },
+        ];
+
+        for (let i = 0; i < asrFixes.length; i++) {
+            const fix = asrFixes[i];
+            if (fix.pattern.test(clean)) {
+                clean = clean.replace(fix.pattern, fix.fix);
+                logVoice('ASR Fix', '"' + transcript + '" -> "' + clean + '"');
+                break;
+            }
+        }
 
         // Word to number mapping
         const wordNumbers = {
@@ -1460,34 +1580,42 @@
 
         // Try patterns: "3-2", "11 9", "five three", "1 0"
         const words = clean.split(' ');
-        let p1Val = null, p2Val = null;
+        let serverVal = null, receiverVal = null;
 
         for (let i = 0; i < words.length; i++) {
             const w = words[i].toLowerCase();
             // Try as digit first
             const num = parseInt(w);
             if (!isNaN(num) && num >= 0 && num <= 99) {
-                if (p1Val === null) p1Val = num;
-                else if (p2Val === null) p2Val = num;
+                if (serverVal === null) serverVal = num;
+                else if (receiverVal === null) receiverVal = num;
             } else {
                 // Try as word
                 const wordVal = wordNumbers[w];
                 if (wordVal !== undefined) {
-                    if (p1Val === null) p1Val = wordVal;
-                    else if (p2Val === null) p2Val = wordVal;
+                    if (serverVal === null) serverVal = wordVal;
+                    else if (receiverVal === null) receiverVal = wordVal;
                 }
             }
         }
 
-        if (p1Val !== null && p2Val !== null) {
+        if (serverVal !== null && receiverVal !== null) {
             saveToHistory();
-            state.p1.points = p1Val;
-            state.p2.points = p2Val;
+            const currentServer = state.servePlayer;
+            // In squash/table tennis: first number = SERVER's score, second = RECEIVER's score
+            if (currentServer === 1) {
+                state.p1.points = serverVal;
+                state.p2.points = receiverVal;
+            } else {
+                state.p1.points = receiverVal;
+                state.p2.points = serverVal;
+            }
             updatePointDisplays();
             updateServeIndicator();
             updateUI();
-            announceScore();
-            logVoice('Command', 'Score set to ' + p1Val + '-' + p2Val + ' — heard: "' + transcript + '"');
+            const serverName = currentServer === 1 ? state.p1Name : state.p2Name;
+            const scoreText = state.p1.pointsDisplay + '-' + state.p2.pointsDisplay;
+            logVoice('Command', 'Score set to ' + scoreText + ' (server: ' + serverName + ') — heard: "' + transcript + '"');
             return true;
         }
 
@@ -1583,6 +1711,28 @@
         else if (containsAny(transcript, ['new set', 'next set', 'set over', 'end set'])) {
             newSet();
             action = 'New set started';
+            matched = true;
+        }
+        // SERVE CHANGE commands
+        else if (containsAny(transcript, ['change serve', 'switch serve', 'your serve', 'my serve', 'serve change'])) {
+            saveToHistory();
+            if (state.mode === 'tennis') {
+                // Tennis: change who serves the NEXT game (not this one)
+                state.gameServer = state.gameServer === 1 ? 2 : 1;
+                state.servePlayer = state.gameServer;
+                const serverName = state.gameServer === 1 ? state.p1Name : state.p2Name;
+                els.matchInfoText.innerHTML = '<span class="announcer">Next game: ' + serverName + ' will serve</span>';
+                logVoice('Action', 'Next game server changed to ' + serverName);
+                if (state.settings.tts) speak('Next game. ' + serverName + ' to serve.');
+            } else {
+                // Squash/Table Tennis/Custom: change current server
+                state.servePlayer = state.servePlayer === 1 ? 2 : 1;
+                state.gameServer = state.servePlayer; // Sync for consistency
+                const serverName = state.servePlayer === 1 ? state.p1Name : state.p2Name;
+                els.matchInfoText.innerHTML = '<span class="announcer">' + serverName + ' now serving</span>';
+                logVoice('Action', 'Serve changed to ' + serverName);
+                if (state.settings.tts) speak(serverName + ' now serving');
+            }
             matched = true;
         }
         // SWAP
@@ -1756,53 +1906,4 @@
             if (saved) {
                 const parsed = JSON.parse(saved);
                 Object.keys(parsed).forEach(function(key) {
-                    if (state.settings.hasOwnProperty(key)) state.settings[key] = parsed[key];
-                });
-            }
-            const savedMode = localStorage.getItem('voiceUmpireMode');
-            if (savedMode && SCORING_RULES[savedMode]) state.mode = savedMode;
-        } catch (e) {}
-        document.getElementById('toggle-autorestart').classList.toggle('active', state.settings.autorestart);
-        document.getElementById('toggle-tts').classList.toggle('active', state.settings.tts);
-        document.getElementById('toggle-announce').classList.toggle('active', state.settings.announce);
-        document.getElementById('toggle-wakelock').classList.toggle('active', state.settings.wakelock);
-        document.getElementById('toggle-serve').classList.toggle('active', state.settings.serve);
-        document.getElementById('lang-select').value = state.settings.lang;
-    }
-
-    // ==================== PWA INSTALL ====================
-    function setupInstallPrompt() {
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-banner').classList.add('show');
-        });
-        window.addEventListener('appinstalled', function() {
-            deferredPrompt = null;
-            document.getElementById('install-banner').classList.remove('show');
-            showToast('Voice Umpire installed!', 'success');
-        });
-    }
-
-    async function installPWA() {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const result = await deferredPrompt.userChoice;
-        if (result.outcome === 'accepted') {
-            document.getElementById('install-banner').classList.remove('show');
-        }
-        deferredPrompt = null;
-    }
-
-    // ==================== SERVICE WORKER ====================
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(function(reg) { console.log('SW registered'); })
-            .catch(function(err) { console.log('SW registration failed'); });
-    }
-
-    // Start
-    init();
-    </script>
-</body>
-</html>
+                    if (state.settings.hasOwnProperty(key
