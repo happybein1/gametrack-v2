@@ -1,7 +1,7 @@
 {
   "name": "Voice Umpire",
   "short_name": "Umpire",
-  "description": "Hands-free voice-controlled sports scoreboard with set-level scoring for tennis, table tennis and custom rules.",
+  "description": "Simple voice-recording scoreboard with manual set and game tracking.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f23",
@@ -18,14 +18,5 @@
     { "src": "icons/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any maskable" },
     { "src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "categories": ["sports", "utilities"],
-  "shortcuts": [
-    {
-      "name": "Start Umpire",
-      "short_name": "Start",
-      "description": "Start voice listening immediately",
-      "url": "/?action=start",
-      "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }]
-    }
-  ]
+  "categories": ["sports", "utilities"]
 }
