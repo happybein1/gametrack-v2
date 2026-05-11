@@ -529,7 +529,10 @@
 <body>
     <div class="header">
         <h1>Voice Umpire</h1>
-        <div class="status-pill idle" id="status-pill">Idle</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span id="version-badge" style="font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;">v2.1</span>
+            <div class="status-pill idle" id="status-pill">Idle</div>
+        </div>
     </div>
     <div class="mode-bar" id="mode-bar">
         <button class="mode-btn active" data-mode="tennis" onclick="setMode('tennis')">🎾 Tennis</button>
@@ -645,7 +648,8 @@
             <div class="setting-group">
                 <h3>About</h3>
                 <p style="color: var(--text-muted); font-size: 12px; line-height: 1.6;">
-                    Voice Umpire v2.0 — Tennis, Squash, Table Tennis & Custom scoring.<br>
+                    Voice Umpire <strong style="color:var(--accent-primary);">v2.1</strong> (build 2026-05-11)<br>
+                    Tennis, Squash, Table Tennis & Custom scoring.<br>
                     Works offline as a PWA. Requires microphone permission.
                 </p>
             </div>
@@ -774,6 +778,10 @@
             ]
         }
     };
+
+    // ==================== VERSION ====================
+    const APP_VERSION = '2.1';
+    const APP_BUILD = '2026-05-11';
 
     // ==================== STATE ====================
     let state = {
@@ -1906,4 +1914,53 @@
             if (saved) {
                 const parsed = JSON.parse(saved);
                 Object.keys(parsed).forEach(function(key) {
-                    if (state.settings.hasOwnProperty(key
+                    if (state.settings.hasOwnProperty(key)) state.settings[key] = parsed[key];
+                });
+            }
+            const savedMode = localStorage.getItem('voiceUmpireMode');
+            if (savedMode && SCORING_RULES[savedMode]) state.mode = savedMode;
+        } catch (e) {}
+        document.getElementById('toggle-autorestart').classList.toggle('active', state.settings.autorestart);
+        document.getElementById('toggle-tts').classList.toggle('active', state.settings.tts);
+        document.getElementById('toggle-announce').classList.toggle('active', state.settings.announce);
+        document.getElementById('toggle-wakelock').classList.toggle('active', state.settings.wakelock);
+        document.getElementById('toggle-serve').classList.toggle('active', state.settings.serve);
+        document.getElementById('lang-select').value = state.settings.lang;
+    }
+
+    // ==================== PWA INSTALL ====================
+    function setupInstallPrompt() {
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-banner').classList.add('show');
+        });
+        window.addEventListener('appinstalled', function() {
+            deferredPrompt = null;
+            document.getElementById('install-banner').classList.remove('show');
+            showToast('Voice Umpire installed!', 'success');
+        });
+    }
+
+    async function installPWA() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        if (result.outcome === 'accepted') {
+            document.getElementById('install-banner').classList.remove('show');
+        }
+        deferredPrompt = null;
+    }
+
+    // ==================== SERVICE WORKER ====================
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(function(reg) { console.log('SW registered'); })
+            .catch(function(err) { console.log('SW registration failed'); });
+    }
+
+    // Start
+    init();
+    </script>
+</body>
+</html>
