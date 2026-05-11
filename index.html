@@ -3,90 +3,1241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Voice Umpire PWA</title>
+    <meta name="theme-color" content="#0f0f23">
+    <meta name="description" content="Voice-controlled sports scoreboard PWA. Hands-free point counting for any sport.">
+    <title>Voice Umpire</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        .scoreboard { display: flex; gap: 40px; font-size: 120px; font-weight: bold; margin-bottom: 20px; }
-        .player { text-align: center; }
-        .label { font-size: 20px; color: #888; text-transform: uppercase; }
-        #status { font-size: 18px; color: #2ecc71; margin-top: 20px; }
-        button { padding: 15px 30px; font-size: 20px; border-radius: 50px; border: none; background: #2ecc71; color: white; cursor: pointer; }
-        button.listening { background: #e74c3c; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #00d4aa;
+            --accent-secondary: #ff6b6b;
+            --accent-warning: #ffd93d;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #666680;
+            --border: #2a2a40;
+            --shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Header */
+        .header {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header h1::before {
+            content: "🎙️";
+            font-size: 22px;
+        }
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        .status-pill.idle { background: var(--text-muted); color: var(--bg-primary); }
+        .status-pill.listening { background: var(--accent-primary); color: var(--bg-primary); animation: pulse-bg 2s infinite; }
+        .status-pill.error { background: var(--accent-secondary); color: white; }
+        .status-pill.paused { background: var(--accent-warning); color: var(--bg-primary); }
+
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Scoreboard */
+        .scoreboard {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            min-height: 0;
+        }
+
+        .player-card {
+            flex: 1;
+            max-width: 280px;
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .player-card.active {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 30px rgba(0, 212, 170, 0.2);
+        }
+        .player-card.winner {
+            border-color: var(--accent-warning);
+            box-shadow: 0 0 40px rgba(255, 217, 61, 0.3);
+            animation: winner-pulse 1s ease infinite alternate;
+        }
+        @keyframes winner-pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.02); }
+        }
+
+        .player-name {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .player-name-input {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            font-weight: 600;
+            font-family: inherit;
+            outline: none;
+            border-bottom: 1px dashed transparent;
+            transition: border-color 0.2s;
+        }
+        .player-name-input:focus {
+            border-bottom-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+        .player-name-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .score-display {
+            font-size: clamp(80px, 15vw, 140px);
+            font-weight: 800;
+            line-height: 1;
+            margin: 10px 0;
+            font-variant-numeric: tabular-nums;
+            transition: transform 0.2s ease;
+        }
+        .score-display.bump {
+            animation: score-bump 0.3s ease;
+        }
+        @keyframes score-bump {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .score-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        .score-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .score-btn:active {
+            transform: scale(0.9);
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+        .score-btn.minus { color: var(--accent-secondary); }
+        .score-btn.minus:active { background: var(--accent-secondary); color: white; }
+
+        .serve-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-warning);
+            box-shadow: 0 0 10px var(--accent-warning);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .serve-indicator.visible { opacity: 1; }
+
+        /* Voice Log */
+        .voice-log {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 12px 20px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .voice-log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .voice-log-entry:last-child { border-bottom: none; }
+        .voice-log-entry .time { color: var(--text-muted); font-size: 11px; min-width: 50px; }
+        .voice-log-entry .command { color: var(--accent-primary); font-weight: 600; }
+        .voice-log-entry .heard { color: var(--text-secondary); font-style: italic; }
+        .voice-log-entry .error { color: var(--accent-secondary); }
+
+        /* Controls */
+        .controls {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .main-btn {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .main-btn:active { transform: scale(0.98); }
+        .main-btn.start {
+            background: linear-gradient(135deg, var(--accent-primary), #00b894);
+            color: var(--bg-primary);
+            box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+        }
+        .main-btn.stop {
+            background: linear-gradient(135deg, var(--accent-secondary), #ee5a5a);
+            color: white;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+        }
+        .main-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .secondary-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .secondary-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .secondary-btn:active {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            background: var(--bg-secondary);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border);
+        }
+        .settings-panel.open { right: 0; }
+        .settings-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .settings-header h2 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .close-settings {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .close-settings:active { background: var(--border); }
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .setting-group {
+            margin-bottom: 24px;
+        }
+        .setting-group h3 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .setting-row label {
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        /* Toggle Switch */
+        .toggle {
+            width: 50px;
+            height: 28px;
+            background: var(--text-muted);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle.active { background: var(--accent-primary); }
+        .toggle::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .toggle.active::after { transform: translateX(22px); }
+
+        .setting-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            min-width: 120px;
+        }
+
+        .command-list {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 13px;
+        }
+        .command-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .command-item:last-child { border-bottom: none; }
+        .command-item .trigger {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+        .command-item .action {
+            color: var(--text-secondary);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2000;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.error { border-color: var(--accent-secondary); color: var(--accent-secondary); }
+        .toast.success { border-color: var(--accent-primary); }
+
+        /* Install prompt */
+        .install-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 3000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        .install-banner.show { transform: translateY(0); }
+        .install-banner button {
+            background: var(--bg-primary);
+            color: var(--accent-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .scoreboard { gap: 12px; padding: 12px; }
+            .player-card { padding: 20px 12px; }
+            .score-display { font-size: 70px; }
+        }
+
+        /* No sleep video fallback (hidden) */
+        #no-sleep-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
-    <div class="scoreboard">
-        <div class="player"><div class="label">P1</div><div id="p1-score">0</div></div>
-        <div class="player"><div class="label">P2</div><div id="p2-score">0</div></div>
+    <div class="header">
+        <h1>Voice Umpire</h1>
+        <div class="status-pill idle" id="status-pill">Idle</div>
     </div>
 
-    <button id="start-btn">Start Umpire</button>
-    <div id="status">Waiting to start...</div>
+    <div class="scoreboard">
+        <div class="player-card" id="p1-card">
+            <div class="serve-indicator" id="p1-serve"></div>
+            <input type="text" class="player-name-input" id="p1-name" value="Player 1" maxlength="15">
+            <div class="score-display" id="p1-score">0</div>
+            <div class="score-buttons">
+                <button class="score-btn minus" onclick="adjustScore(1, -1)" aria-label="Decrease Player 1 score">−</button>
+                <button class="score-btn" onclick="adjustScore(1, 1)" aria-label="Increase Player 1 score">+</button>
+            </div>
+        </div>
+
+        <div class="player-card" id="p2-card">
+            <div class="serve-indicator" id="p2-serve"></div>
+            <input type="text" class="player-name-input" id="p2-name" value="Player 2" maxlength="15">
+            <div class="score-display" id="p2-score">0</div>
+            <div class="score-buttons">
+                <button class="score-btn minus" onclick="adjustScore(2, -1)" aria-label="Decrease Player 2 score">−</button>
+                <button class="score-btn" onclick="adjustScore(2, 1)" aria-label="Increase Player 2 score">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="voice-log" id="voice-log">
+        <div class="voice-log-entry">
+            <span class="time">--:--</span>
+            <span>Tap "Start Umpire" to begin voice control</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="main-btn start" id="main-btn" onclick="toggleListening()">
+            <span id="btn-icon">▶</span>
+            <span id="btn-text">Start Umpire</span>
+        </button>
+
+        <div class="secondary-controls">
+            <button class="secondary-btn" onclick="resetScores()">
+                <span>↺</span> Reset
+            </button>
+            <button class="secondary-btn" onclick="swapPlayers()">
+                <span>⇄</span> Swap
+            </button>
+            <button class="secondary-btn" onclick="undoLast()">
+                <span>↩</span> Undo
+            </button>
+            <button class="secondary-btn" onclick="openSettings()">
+                <span>⚙</span> Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="overlay" id="overlay" onclick="closeSettings()"></div>
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <h2>⚙ Settings</h2>
+            <button class="close-settings" onclick="closeSettings()">✕</button>
+        </div>
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3>Voice Control</h3>
+                <div class="setting-row">
+                    <label>Auto-restart on silence</label>
+                    <div class="toggle active" id="toggle-autorestart" onclick="toggleSetting('autorestart')"></div>
+                </div>
+                <div class="setting-row">
+                    <label>Voice feedback (TTS)</label>
+                    <div class="toggle active" id="toggle-tts" onclick="toggleSetting('tts')"></div>
+                </div>
+                <div class="setting-row">
+                    <label>Language</label>
+                    <select class="setting-select" id="lang-select" onchange="changeLanguage(this.value)">
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                        <option value="de-DE">German</option>
+                        <option value="it-IT">Italian</option>
+                        <option value="nl-NL">Dutch</option>
+                        <option value="pt-BR">Portuguese</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>Display</h3>
+                <div class="setting-row">
+                    <label>Keep screen awake</label>
+                    <div class="toggle active" id="toggle-wakelock" onclick="toggleSetting('wakelock')"></div>
+                </div>
+                <div class="setting-row">
+                    <label>Show serve indicator</label>
+                    <div class="toggle active" id="toggle-serve" onclick="toggleSetting('serve')"></div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>Voice Commands</h3>
+                <div class="command-list">
+                    <div class="command-item"><span class="trigger">"Point [name]"</span><span class="action">+1 point</span></div>
+                    <div class="command-item"><span class="trigger">"Score [name]"</span><span class="action">+1 point</span></div>
+                    <div class="command-item"><span class="trigger">"Minus [name]"</span><span class="action">-1 point</span></div>
+                    <div class="command-item"><span class="trigger">"Reset"</span><span class="action">Reset scores</span></div>
+                    <div class="command-item"><span class="trigger">"Swap" / "Switch"</span><span class="action">Swap sides</span></div>
+                    <div class="command-item"><span class="trigger">"Undo"</span><span class="action">Undo last</span></div>
+                    <div class="command-item"><span class="trigger">"Stop" / "Pause"</span><span class="action">Stop listening</span></div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3>About</h3>
+                <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">
+                    Voice Umpire v1.0<br>
+                    Works offline as a PWA.<br>
+                    Requires microphone permission.<br>
+                    Chrome/Edge/Safari recommended.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="install-banner" id="install-banner">
+        <span>📲 Install Voice Umpire for offline use</span>
+        <button onclick="installPWA()">Install</button>
+    </div>
+
+    <!-- NoSleep fallback video -->
+    <video id="no-sleep-video" loop muted playsinline>
+        <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
+    </video>
 
     <script>
-        let p1Score = 0;
-        let p2Score = 0;
-        let wakeLock = null;
-
-        const startBtn = document.getElementById('start-btn');
-        const statusDiv = document.getElementById('status');
-        const p1Display = document.getElementById('p1-score');
-        const p2Display = document.getElementById('p2-score');
-
-        // 1. SPEECH RECOGNITION SETUP
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'en-US';
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-            console.log("Heard:", transcript);
-
-            if (transcript.includes("point one") || transcript.includes("fifteen love")) {
-                p1Score++;
-                announce("Point Player One");
-            } else if (transcript.includes("point two") || transcript.includes("love fifteen")) {
-                p2Score++;
-                announce("Point Player Two");
-            } else if (transcript.includes("reset")) {
-                p1Score = 0; p2Score = 0;
-                announce("Resetting match");
-            }
-            updateUI();
+        // ==================== STATE ====================
+        let state = {
+            p1Score: 0,
+            p2Score: 0,
+            p1Name: 'Player 1',
+            p2Name: 'Player 2',
+            history: [],
+            isListening: false,
+            recognition: null,
+            wakeLock: null,
+            noSleepVideo: null,
+            settings: {
+                autorestart: true,
+                tts: true,
+                wakelock: true,
+                serve: true,
+                lang: 'en-US'
+            },
+            consecutiveErrors: 0,
+            lastCommandTime: 0,
+            servePlayer: 1
         };
 
-        // 2. STAY AWAKE LOGIC
-        async function stayAwake() {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-            } catch (err) { console.error(err); }
+        let deferredPrompt = null;
+
+        // ==================== DOM REFS ====================
+        const els = {
+            p1Score: document.getElementById('p1-score'),
+            p2Score: document.getElementById('p2-score'),
+            p1Name: document.getElementById('p1-name'),
+            p2Name: document.getElementById('p2-name'),
+            p1Card: document.getElementById('p1-card'),
+            p2Card: document.getElementById('p2-card'),
+            p1Serve: document.getElementById('p1-serve'),
+            p2Serve: document.getElementById('p2-serve'),
+            statusPill: document.getElementById('status-pill'),
+            mainBtn: document.getElementById('main-btn'),
+            btnIcon: document.getElementById('btn-icon'),
+            btnText: document.getElementById('btn-text'),
+            voiceLog: document.getElementById('voice-log'),
+            toast: document.getElementById('toast'),
+            noSleepVideo: document.getElementById('no-sleep-video')
+        };
+
+        // ==================== INIT ====================
+        function init() {
+            loadSettings();
+            updateUI();
+            setupInstallPrompt();
+            setupVisibilityHandler();
+
+            // Name inputs
+            els.p1Name.addEventListener('change', (e) => { state.p1Name = e.target.value || 'Player 1'; });
+            els.p2Name.addEventListener('change', (e) => { state.p2Name = e.target.value || 'Player 2'; });
+
+            // Prevent zoom on double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) e.preventDefault();
+                lastTouchEnd = now;
+            }, false);
         }
 
-        // 3. VOICE FEEDBACK
-        function announce(text) {
+        // ==================== SPEECH RECOGNITION ====================
+        function setupRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Speech recognition not supported in this browser', 'error');
+                return false;
+            }
+
+            state.recognition = new SpeechRecognition();
+            state.recognition.continuous = true;
+            state.recognition.interimResults = true;
+            state.recognition.lang = state.settings.lang;
+            state.recognition.maxAlternatives = 3;
+
+            state.recognition.onstart = () => {
+                state.isListening = true;
+                state.consecutiveErrors = 0;
+                updateStatus('listening', 'Listening...');
+                updateMainButton();
+                logVoice('System', 'Microphone active');
+            };
+
+            state.recognition.onresult = (event) => {
+                const results = event.results;
+                const lastResult = results[results.length - 1];
+
+                if (lastResult.isFinal) {
+                    const transcript = lastResult[0].transcript.toLowerCase().trim();
+                    processCommand(transcript);
+                } else {
+                    // Show interim results in status
+                    const interim = lastResult[0].transcript.toLowerCase().trim();
+                    if (interim.length > 0) {
+                        updateStatus('listening', 'Hearing: "' + interim + '"');
+                    }
+                }
+            };
+
+            state.recognition.onerror = (event) => {
+                const error = event.error;
+                state.consecutiveErrors++;
+
+                if (error === 'no-speech') {
+                    // Normal - just restart
+                    logVoice('System', 'No speech detected, restarting...');
+                } else if (error === 'audio-capture') {
+                    updateStatus('error', 'No microphone found');
+                    logVoice('Error', 'No microphone available');
+                    showToast('No microphone detected', 'error');
+                } else if (error === 'not-allowed') {
+                    updateStatus('error', 'Mic permission denied');
+                    logVoice('Error', 'Microphone permission denied');
+                    showToast('Allow microphone access in settings', 'error');
+                    stopListening();
+                    return;
+                } else if (error === 'network') {
+                    updateStatus('error', 'Network error');
+                    logVoice('Error', 'Network error - check connection');
+                } else {
+                    updateStatus('error', 'Error: ' + error);
+                    logVoice('Error', error);
+                }
+
+                // Auto-restart unless too many consecutive errors
+                if (state.settings.autorestart && state.isListening && state.consecutiveErrors < 5) {
+                    setTimeout(() => {
+                        if (state.isListening) safeStartRecognition();
+                    }, 500);
+                } else if (state.consecutiveErrors >= 5) {
+                    updateStatus('error', 'Too many errors - stopped');
+                    stopListening();
+                    showToast('Stopped due to repeated errors', 'error');
+                }
+            };
+
+            state.recognition.onend = () => {
+                if (state.isListening && state.settings.autorestart) {
+                    // Chrome stops after ~60s silence - restart immediately
+                    setTimeout(() => safeStartRecognition(), 100);
+                }
+            };
+
+            return true;
+        }
+
+        function safeStartRecognition() {
+            if (!state.recognition) return;
+            try {
+                state.recognition.start();
+            } catch (e) {
+                // Already started or other error
+                if (e.name !== 'InvalidStateError') {
+                    console.error('Recognition start error:', e);
+                }
+            }
+        }
+
+        // ==================== COMMAND PROCESSING ====================
+        function processCommand(transcript) {
+            const now = Date.now();
+            // Debounce: ignore commands within 1.5 seconds
+            if (now - state.lastCommandTime < 1500) {
+                logVoice('Ignored', '"' + transcript + '" (too fast)');
+                return;
+            }
+
+            const p1NameLower = state.p1Name.toLowerCase();
+            const p2NameLower = state.p2Name.toLowerCase();
+
+            let matched = false;
+            let action = '';
+
+            // POINT commands
+            if (containsAny(transcript, ['point one', 'score one', 'player one', 'p1 point', 'point ' + p1NameLower, 'score ' + p1NameLower, 'team one', 'home'])) {
+                adjustScore(1, 1);
+                action = 'Point to ' + state.p1Name;
+                matched = true;
+            } else if (containsAny(transcript, ['point two', 'score two', 'player two', 'p2 point', 'point ' + p2NameLower, 'score ' + p2NameLower, 'team two', 'away'])) {
+                adjustScore(2, 1);
+                action = 'Point to ' + state.p2Name;
+                matched = true;
+            }
+            // MINUS commands
+            else if (containsAny(transcript, ['minus one', 'remove one', 'take one', 'minus ' + p1NameLower, 'remove ' + p1NameLower])) {
+                adjustScore(1, -1);
+                action = 'Removed point from ' + state.p1Name;
+                matched = true;
+            } else if (containsAny(transcript, ['minus two', 'remove two', 'take two', 'minus ' + p2NameLower, 'remove ' + p2NameLower])) {
+                adjustScore(2, -1);
+                action = 'Removed point from ' + state.p2Name;
+                matched = true;
+            }
+            // RESET
+            else if (containsAny(transcript, ['reset', 'clear', 'start over', 'new game', 'new match'])) {
+                resetScores();
+                action = 'Scores reset';
+                matched = true;
+            }
+            // SWAP
+            else if (containsAny(transcript, ['swap', 'switch', 'change sides', 'rotate'])) {
+                swapPlayers();
+                action = 'Players swapped';
+                matched = true;
+            }
+            // UNDO
+            else if (containsAny(transcript, ['undo', 'go back', 'reverse', 'oops'])) {
+                undoLast();
+                action = 'Last action undone';
+                matched = true;
+            }
+            // STOP
+            else if (containsAny(transcript, ['stop', 'pause', 'halt', 'break'])) {
+                stopListening();
+                action = 'Listening paused';
+                matched = true;
+            }
+
+            if (matched) {
+                state.lastCommandTime = now;
+                state.consecutiveErrors = 0;
+                logVoice('Command', action + ' — heard: "' + transcript + '"');
+                if (state.settings.tts) speak(action);
+            } else {
+                logVoice('Heard', '"' + transcript + '" (no match)');
+            }
+        }
+
+        function containsAny(text, phrases) {
+            return phrases.some(p => text.includes(p));
+        }
+
+        // ==================== SCORE LOGIC ====================
+        function adjustScore(player, delta) {
+            saveToHistory();
+            if (player === 1) {
+                state.p1Score = Math.max(0, state.p1Score + delta);
+                animateScore(els.p1Score);
+            } else {
+                state.p2Score = Math.max(0, state.p2Score + delta);
+                animateScore(els.p2Score);
+            }
+            updateServeIndicator();
+            updateUI();
+        }
+
+        function saveToHistory() {
+            state.history.push({
+                p1Score: state.p1Score,
+                p2Score: state.p2Score,
+                p1Name: state.p1Name,
+                p2Name: state.p2Name,
+                servePlayer: state.servePlayer,
+                timestamp: Date.now()
+            });
+            if (state.history.length > 50) state.history.shift();
+        }
+
+        function resetScores() {
+            saveToHistory();
+            state.p1Score = 0;
+            state.p2Score = 0;
+            state.servePlayer = 1;
+            updateServeIndicator();
+            updateUI();
+            logVoice('Action', 'Scores reset');
+            if (state.settings.tts) speak('Scores reset');
+        }
+
+        function undoLast() {
+            if (state.history.length === 0) {
+                showToast('Nothing to undo', 'error');
+                return;
+            }
+            const last = state.history.pop();
+            state.p1Score = last.p1Score;
+            state.p2Score = last.p2Score;
+            state.p1Name = last.p1Name;
+            state.p2Name = last.p2Name;
+            state.servePlayer = last.servePlayer;
+            els.p1Name.value = state.p1Name;
+            els.p2Name.value = state.p2Name;
+            updateServeIndicator();
+            updateUI();
+            logVoice('Action', 'Undo last action');
+            if (state.settings.tts) speak('Undo');
+        }
+
+        function swapPlayers() {
+            saveToHistory();
+            const tempScore = state.p1Score;
+            state.p1Score = state.p2Score;
+            state.p2Score = tempScore;
+            const tempName = state.p1Name;
+            state.p1Name = state.p2Name;
+            state.p2Name = tempName;
+            els.p1Name.value = state.p1Name;
+            els.p2Name.value = state.p2Name;
+            state.servePlayer = state.servePlayer === 1 ? 2 : 1;
+            updateServeIndicator();
+            updateUI();
+            logVoice('Action', 'Players swapped');
+            if (state.settings.tts) speak('Players swapped');
+        }
+
+        function updateServeIndicator() {
+            if (!state.settings.serve) {
+                els.p1Serve.classList.remove('visible');
+                els.p2Serve.classList.remove('visible');
+                return;
+            }
+            // Simple alternation: switch serve every 2 points (like tennis)
+            const totalPoints = state.p1Score + state.p2Score;
+            if (totalPoints > 0 && totalPoints % 2 === 0) {
+                state.servePlayer = state.servePlayer === 1 ? 2 : 1;
+            }
+            els.p1Serve.classList.toggle('visible', state.servePlayer === 1);
+            els.p2Serve.classList.toggle('visible', state.servePlayer === 2);
+        }
+
+        // ==================== UI UPDATES ====================
+        function updateUI() {
+            els.p1Score.textContent = state.p1Score;
+            els.p2Score.textContent = state.p2Score;
+
+            // Highlight leading player
+            if (state.p1Score > state.p2Score) {
+                els.p1Card.classList.add('active');
+                els.p2Card.classList.remove('active');
+            } else if (state.p2Score > state.p1Score) {
+                els.p2Card.classList.add('active');
+                els.p1Card.classList.remove('active');
+            } else {
+                els.p1Card.classList.remove('active');
+                els.p2Card.classList.remove('active');
+            }
+        }
+
+        function animateScore(element) {
+            element.classList.remove('bump');
+            void element.offsetWidth; // trigger reflow
+            element.classList.add('bump');
+        }
+
+        function updateStatus(type, text) {
+            els.statusPill.className = 'status-pill ' + type;
+            els.statusPill.textContent = text;
+        }
+
+        function updateMainButton() {
+            if (state.isListening) {
+                els.mainBtn.className = 'main-btn stop';
+                els.btnIcon.textContent = '⏹';
+                els.btnText.textContent = 'Stop Umpire';
+            } else {
+                els.mainBtn.className = 'main-btn start';
+                els.btnIcon.textContent = '▶';
+                els.btnText.textContent = 'Start Umpire';
+            }
+        }
+
+        function logVoice(type, message) {
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = document.createElement('div');
+            entry.className = 'voice-log-entry';
+            let typeClass = '';
+            if (type === 'Error') typeClass = 'error';
+            else if (type === 'Command') typeClass = 'command';
+            entry.innerHTML = `<span class="time">${time}</span><span class="${typeClass}">${type}:</span> <span class="heard">${message}</span>`;
+            els.voiceLog.insertBefore(entry, els.voiceLog.firstChild);
+            while (els.voiceLog.children.length > 20) {
+                els.voiceLog.removeChild(els.voiceLog.lastChild);
+            }
+        }
+
+        function showToast(message, type = '') {
+            els.toast.textContent = message;
+            els.toast.className = 'toast show ' + type;
+            setTimeout(() => {
+                els.toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // ==================== LISTENING CONTROL ====================
+        async function toggleListening() {
+            if (state.isListening) {
+                stopListening();
+            } else {
+                await startListening();
+            }
+        }
+
+        async function startListening() {
+            if (!state.recognition) {
+                if (!setupRecognition()) return;
+            }
+
+            try {
+                state.recognition.lang = state.settings.lang;
+                state.recognition.start();
+
+                if (state.settings.wakelock) {
+                    await acquireWakeLock();
+                }
+            } catch (e) {
+                showToast('Could not start: ' + e.message, 'error');
+                return;
+            }
+        }
+
+        function stopListening() {
+            state.isListening = false;
+            state.consecutiveErrors = 0;
+
+            if (state.recognition) {
+                try { state.recognition.stop(); } catch (e) {}
+            }
+
+            releaseWakeLock();
+            updateStatus('idle', 'Idle');
+            updateMainButton();
+            logVoice('System', 'Stopped listening');
+        }
+
+        // ==================== WAKE LOCK ====================
+        async function acquireWakeLock() {
+            // Try native Wake Lock API first
+            if ('wakeLock' in navigator) {
+                try {
+                    state.wakeLock = await navigator.wakeLock.request('screen');
+                    state.wakeLock.addEventListener('release', () => {
+                        logVoice('System', 'Wake lock released');
+                    });
+                    logVoice('System', 'Screen wake lock active');
+                    return;
+                } catch (err) {
+                    console.log('Wake Lock API failed, using fallback');
+                }
+            }
+
+            // Fallback: NoSleep video trick
+            if (els.noSleepVideo) {
+                try {
+                    await els.noSleepVideo.play();
+                    state.noSleepVideo = els.noSleepVideo;
+                    logVoice('System', 'Screen stay-awake fallback active');
+                } catch (e) {
+                    console.error('NoSleep fallback failed:', e);
+                }
+            }
+        }
+
+        function releaseWakeLock() {
+            if (state.wakeLock) {
+                state.wakeLock.release().catch(() => {});
+                state.wakeLock = null;
+            }
+            if (state.noSleepVideo) {
+                state.noSleepVideo.pause();
+                state.noSleepVideo = null;
+            }
+        }
+
+        function setupVisibilityHandler() {
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible' && state.isListening && state.settings.wakelock) {
+                    await acquireWakeLock();
+                }
+            });
+        }
+
+        // ==================== TTS ====================
+        function speak(text) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
             window.speechSynthesis.speak(utterance);
         }
 
-        function updateUI() {
-            p1Display.innerText = p1Score;
-            p2Display.innerText = p2Score;
+        // ==================== SETTINGS ====================
+        function openSettings() {
+            document.getElementById('settings-panel').classList.add('open');
+            document.getElementById('overlay').classList.add('visible');
         }
 
-        startBtn.addEventListener('click', () => {
-            recognition.start();
-            stayAwake();
-            startBtn.innerText = "Umpire Listening...";
-            startBtn.classList.add('listening');
-            statusDiv.innerText = "Say 'Point One' or 'Point Two'";
-            announce("Umpire active. Standing by.");
-        });
+        function closeSettings() {
+            document.getElementById('settings-panel').classList.remove('open');
+            document.getElementById('overlay').classList.remove('visible');
+            saveSettings();
+        }
 
-        // Restart mic if it drops (Common in browsers)
-        recognition.onend = () => { if(startBtn.classList.contains('listening')) recognition.start(); };
+        function toggleSetting(key) {
+            state.settings[key] = !state.settings[key];
+            const toggle = document.getElementById('toggle-' + key);
+            toggle.classList.toggle('active', state.settings[key]);
+
+            if (key === 'wakelock' && state.isListening) {
+                if (state.settings.wakelock) acquireWakeLock();
+                else releaseWakeLock();
+            }
+
+            if (key === 'serve') updateServeIndicator();
+            saveSettings();
+        }
+
+        function changeLanguage(lang) {
+            state.settings.lang = lang;
+            if (state.recognition) {
+                state.recognition.lang = lang;
+                // Restart to apply new language
+                if (state.isListening) {
+                    stopListening();
+                    setTimeout(startListening, 300);
+                }
+            }
+            saveSettings();
+        }
+
+        function saveSettings() {
+            try {
+                localStorage.setItem('voiceUmpireSettings', JSON.stringify(state.settings));
+            } catch (e) {}
+        }
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('voiceUmpireSettings');
+                if (saved) {
+                    state.settings = { ...state.settings, ...JSON.parse(saved) };
+                }
+            } catch (e) {}
+
+            // Apply loaded settings to UI
+            document.getElementById('toggle-autorestart').classList.toggle('active', state.settings.autorestart);
+            document.getElementById('toggle-tts').classList.toggle('active', state.settings.tts);
+            document.getElementById('toggle-wakelock').classList.toggle('active', state.settings.wakelock);
+            document.getElementById('toggle-serve').classList.toggle('active', state.settings.serve);
+            document.getElementById('lang-select').value = state.settings.lang;
+        }
+
+        // ==================== PWA INSTALL ====================
+        function setupInstallPrompt() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('install-banner').classList.add('show');
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredPrompt = null;
+                document.getElementById('install-banner').classList.remove('show');
+                showToast('Voice Umpire installed!', 'success');
+            });
+        }
+
+        async function installPWA() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                document.getElementById('install-banner').classList.remove('show');
+            }
+            deferredPrompt = null;
+        }
+
+        // ==================== SERVICE WORKER ====================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW registration failed'));
+        }
+
+        // Start
+        init();
     </script>
 </body>
 </html>
