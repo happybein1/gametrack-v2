@@ -4,1991 +4,587 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0f0f23">
-    <meta name="description" content="Voice-controlled sports scoreboard PWA with tennis, squash, and custom scoring.">
-    <title>Voice Umpire</title>
+    <title>Voice Umpire v2.6</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <link rel="icon" type="image/png" href="icons/icon-192x192.png">
     <style>
         :root {
-            --bg-primary: #0f0f23;
-            --bg-secondary: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-elevated: #1e2a4a;
-            --accent-primary: #00d4aa;
-            --accent-secondary: #ff6b6b;
-            --accent-warning: #ffd93d;
-            --accent-info: #74b9ff;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
-            --text-muted: #666680;
+            --bg: #0f0f23; --bg2: #1a1a2e; --card: #16213e; --accent: #00d4aa;
+            --warn: #ffd93d; --danger: #ff6b6b; --text: #fff; --muted: #a0a0b0;
             --border: #2a2a40;
-            --shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            touch-action: manipulation;
-        }
-        .header {
-            padding: 10px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-        }
-        .header h1 {
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .header h1::before { content: "🎙️"; font-size: 18px; }
-        .status-pill {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-        }
-        .status-pill.idle { background: var(--text-muted); color: var(--bg-primary); }
-        .status-pill.listening { background: var(--accent-primary); color: var(--bg-primary); animation: pulse-bg 2s infinite; }
-        .status-pill.error { background: var(--accent-secondary); color: white; }
-        .status-pill.paused { background: var(--accent-warning); color: var(--bg-primary); }
-        @keyframes pulse-bg { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        .mode-bar {
-            display: flex;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+        .header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: var(--bg2); border-bottom: 1px solid var(--border); }
+        .header h1 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        .version { font-size: 11px; color: var(--accent); font-weight: 700; background: rgba(0,212,170,0.1); padding: 2px 8px; border-radius: 12px; }
+        .status { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .status.idle { background: #666680; color: var(--bg); }
+        .status.listening { background: var(--accent); color: var(--bg); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        .mode-bar { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; }
         .mode-bar::-webkit-scrollbar { display: none; }
-        .mode-btn {
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-        .mode-btn.active {
-            background: var(--accent-primary);
-            color: var(--bg-primary);
-            border-color: var(--accent-primary);
-        }
-        .mode-btn:active { transform: scale(0.95); }
-        .scoreboard {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 16px;
-            padding: 16px;
-            min-height: 0;
-        }
-        .player-card {
-            flex: 1;
-            max-width: 300px;
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 24px 16px;
-            text-align: center;
-            border: 2px solid var(--border);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .player-card.active {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 25px rgba(0, 212, 170, 0.15);
-        }
-        .player-card.winner {
-            border-color: var(--accent-warning);
-            box-shadow: 0 0 35px rgba(255, 217, 61, 0.25);
-            animation: winner-pulse 1s ease infinite alternate;
-        }
-        @keyframes winner-pulse { from { transform: scale(1); } to { transform: scale(1.02); } }
-        .player-name-input {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            text-align: center;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            width: 100%;
-            font-weight: 600;
-            font-family: inherit;
-            outline: none;
-            border-bottom: 1px dashed transparent;
-            transition: border-color 0.2s;
-            margin-bottom: 4px;
-        }
-        .player-name-input:focus {
-            border-bottom-color: var(--accent-primary);
-            color: var(--text-primary);
-        }
-        .player-name-input::placeholder { color: var(--text-muted); }
-        .point-display {
-            font-size: clamp(60px, 12vw, 100px);
-            font-weight: 800;
-            line-height: 1;
-            margin: 8px 0;
-            font-variant-numeric: tabular-nums;
-            transition: transform 0.2s ease;
-            color: var(--text-primary);
-        }
-        .point-display.bump { animation: score-bump 0.3s ease; }
-        @keyframes score-bump {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-        .match-stats {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 8px;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-        .match-stat {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-        }
-        .match-stat .stat-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .match-stat .stat-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            min-width: 24px;
-        }
-        .match-stat .stat-value.active { color: var(--accent-primary); }
-        .score-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-top: 14px;
-        }
-        .score-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid var(--border);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s ease;
-            user-select: none;
-        }
-        .score-btn:active {
-            transform: scale(0.9);
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-        .score-btn.minus { color: var(--accent-secondary); }
-        .score-btn.minus:active { background: var(--accent-secondary); color: white; }
-        .serve-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--accent-warning);
-            box-shadow: 0 0 8px var(--accent-warning);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .serve-indicator.visible { opacity: 1; }
-        .match-info {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            padding: 8px 16px;
-            text-align: center;
-            font-size: 13px;
-            color: var(--text-secondary);
-            min-height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .match-info .announcer {
-            color: var(--accent-warning);
-            font-weight: 600;
-        }
-        .voice-log {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            padding: 10px 16px;
-            max-height: 100px;
-            overflow-y: auto;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-        .voice-log-entry {
-            padding: 3px 0;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .voice-log-entry:last-child { border-bottom: none; }
-        .voice-log-entry .time { color: var(--text-muted); font-size: 10px; min-width: 45px; }
-        .voice-log-entry .command { color: var(--accent-primary); font-weight: 600; }
-        .voice-log-entry .heard { color: var(--text-secondary); font-style: italic; }
-        .voice-log-entry .error { color: var(--accent-secondary); }
-        .voice-log-entry .announce { color: var(--accent-warning); font-weight: 600; }
-        .controls {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            padding: 12px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .main-btn {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            border: none;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        .main-btn:active { transform: scale(0.98); }
-        .main-btn.start {
-            background: linear-gradient(135deg, var(--accent-primary), #00b894);
-            color: var(--bg-primary);
-            box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
-        }
-        .main-btn.stop {
-            background: linear-gradient(135deg, var(--accent-secondary), #ee5a5a);
-            color: white;
-            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
-        }
-        .main-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .secondary-controls {
-            display: flex;
-            gap: 8px;
-        }
-        .secondary-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-        .secondary-btn:active {
-            background: var(--border);
-            color: var(--text-primary);
-        }
-        .settings-panel {
-            position: fixed;
-            top: 0;
-            right: -100%;
-            width: 100%;
-            max-width: 420px;
-            height: 100%;
-            background: var(--bg-secondary);
-            z-index: 1000;
-            transition: right 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            border-left: 1px solid var(--border);
-        }
-        .settings-panel.open { right: 0; }
-        .settings-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .settings-header h2 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
-        .close-settings {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 22px;
-            cursor: pointer;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        .close-settings:active { background: var(--border); }
-        .settings-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 20px;
-        }
-        .setting-group { margin-bottom: 20px; }
-        .setting-group h3 {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .setting-row label { font-size: 14px; color: var(--text-primary); }
-        .toggle {
-            width: 46px;
-            height: 26px;
-            background: var(--text-muted);
-            border-radius: 13px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-        .toggle.active { background: var(--accent-primary); }
-        .toggle::after {
-            content: "";
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 22px;
-            height: 22px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .toggle.active::after { transform: translateX(20px); }
-        .setting-select {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: inherit;
-            min-width: 140px;
-        }
-        .setting-input {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: inherit;
-            width: 60px;
-            text-align: center;
-        }
-        .command-list {
-            background: var(--bg-card);
-            border-radius: 10px;
-            padding: 10px;
-            font-size: 12px;
-        }
-        .command-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .command-item:last-child { border-bottom: none; }
-        .command-item .trigger { color: var(--accent-primary); font-weight: 600; }
-        .command-item .action { color: var(--text-secondary); }
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 999;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        .overlay.visible { opacity: 1; pointer-events: auto; }
-        .toast {
-            position: fixed;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: var(--bg-card);
-            color: var(--text-primary);
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 2000;
-            pointer-events: none;
-            white-space: nowrap;
-        }
+        .mode-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .mode-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .scoreboard { flex: 1; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 20px 16px; }
+        .player-card { flex: 1; max-width: 300px; background: var(--card); border-radius: 20px; padding: 24px 16px; text-align: center; border: 2px solid var(--border); transition: all 0.3s; }
+        .player-card.active { border-color: var(--accent); box-shadow: 0 0 25px rgba(0,212,170,0.15); }
+        .player-card.winner { border-color: var(--warn); box-shadow: 0 0 35px rgba(255,217,61,0.25); animation: win 1s ease infinite alternate; }
+        @keyframes win { from{transform:scale(1)} to{transform:scale(1.02)} }
+        .player-name { background: transparent; border: none; color: var(--muted); text-align: center; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; width: 100%; font-weight: 600; outline: none; margin-bottom: 8px; }
+        .player-name:focus { color: var(--text); border-bottom: 1px dashed var(--accent); }
+        .sets-display { font-size: clamp(72px, 15vw, 120px); font-weight: 800; line-height: 1; margin: 8px 0; }
+        .games-display { font-size: 28px; font-weight: 700; color: var(--muted); margin: 4px 0; }
+        .games-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+        .btn-row { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+        .btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn:active { transform: scale(0.92); background: var(--accent); border-color: var(--accent); }
+        .btn.minus:active { background: var(--danger); border-color: var(--danger); }
+        .btn-wide { flex: 1; max-width: 100px; font-size: 12px; text-transform: uppercase; }
+        .match-info { background: var(--bg2); border-top: 1px solid var(--border); padding: 10px 16px; text-align: center; font-size: 13px; color: var(--muted); min-height: 40px; display: flex; align-items: center; justify-content: center; }
+        .match-info .announcer { color: var(--warn); font-weight: 600; }
+        .log { background: var(--bg2); border-top: 1px solid var(--border); padding: 10px 16px; max-height: 90px; overflow-y: auto; font-size: 12px; color: var(--muted); }
+        .log-entry { padding: 3px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-time { color: #666680; font-size: 10px; min-width: 45px; }
+        .log-cmd { color: var(--accent); font-weight: 600; }
+        .log-ann { color: var(--warn); font-weight: 600; }
+        .controls { background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+        .main-btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .main-btn.start { background: linear-gradient(135deg, var(--accent), #00b894); color: var(--bg); }
+        .main-btn.stop { background: linear-gradient(135deg, var(--danger), #ee5a5a); color: #fff; }
+        .secondary { display: flex; gap: 8px; }
+        .sec-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+        .sec-btn:active { background: var(--border); color: var(--text); }
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); color: var(--text); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid var(--border); opacity: 0; transition: all 0.3s; z-index: 2000; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .toast.error { border-color: var(--accent-secondary); color: var(--accent-secondary); }
-        .toast.success { border-color: var(--accent-primary); }
-        .toast.announce { border-color: var(--accent-warning); color: var(--accent-warning); font-size: 15px; padding: 12px 24px; }
-        .install-banner {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--accent-primary);
-            color: var(--bg-primary);
-            padding: 14px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 3000;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
+        .toast.announce { border-color: var(--warn); color: var(--warn); font-size: 16px; padding: 14px 28px; }
+        .set-entry { display: flex; justify-content: center; gap: 16px; margin: 8px 0; font-size: 13px; color: var(--muted); }
+        .set-entry span { color: var(--text); font-weight: 700; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .overlay.visible { opacity: 1; pointer-events: auto; }
+        .settings { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100%; background: var(--bg2); z-index: 1000; transition: right 0.3s; display: flex; flex-direction: column; border-left: 1px solid var(--border); }
+        .settings.open { right: 0; }
+        .settings-h { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .settings-h h2 { font-size: 18px; }
+        .close-s { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .close-s:active { background: var(--border); }
+        .settings-c { flex: 1; overflow-y: auto; padding: 16px 20px; }
+        .sg { margin-bottom: 20px; }
+        .sg h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+        .sr { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .sr label { font-size: 14px; }
+        .toggle { width: 46px; height: 26px; background: #666680; border-radius: 13px; position: relative; cursor: pointer; transition: background 0.2s; }
+        .toggle.on { background: var(--accent); }
+        .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.2s; }
+        .toggle.on::after { transform: translateX(20px); }
+        .sel { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-family: inherit; min-width: 140px; }
+        .inp { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; font-size: 13px; width: 60px; text-align: center; }
+        .cmd-list { background: var(--card); border-radius: 10px; padding: 10px; font-size: 12px; }
+        .cmd-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .cmd-item:last-child { border-bottom: none; }
+        .cmd-item .t { color: var(--accent); font-weight: 600; }
+        .cmd-item .a { color: var(--muted); }
+        .changelog { background: var(--card); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+        .changelog strong { color: var(--accent); }
+        .install-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: var(--bg); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 3000; transform: translateY(100%); transition: transform 0.3s; }
         .install-banner.show { transform: translateY(0); }
-        .install-banner button {
-            background: var(--bg-primary);
-            color: var(--accent-primary);
-            border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        #no-sleep-video {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
-        }
-        @media (max-width: 480px) {
-            .scoreboard { gap: 10px; padding: 10px; }
-            .player-card { padding: 18px 10px; }
-            .point-display { font-size: 55px; }
-            .match-stats { gap: 8px; }
-        }
+        .install-banner button { background: var(--bg); color: var(--accent); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        #no-sleep { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Voice Umpire</h1>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <span id="version-badge" style="font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;">v2.3</span>
-            <div class="status-pill idle" id="status-pill">Idle</div>
-        </div>
+        <h1>🎙️ Voice Umpire <span class="version">v2.6</span></h1>
+        <div class="status idle" id="status">Idle</div>
     </div>
-    <div class="mode-bar" id="mode-bar">
+    <div class="mode-bar">
         <button class="mode-btn active" data-mode="tennis" onclick="setMode('tennis')">🎾 Tennis</button>
-        <button class="mode-btn" data-mode="squash" onclick="setMode('squash')">🏸 Squash</button>
         <button class="mode-btn" data-mode="tabletennis" onclick="setMode('tabletennis')">🏓 Table Tennis</button>
         <button class="mode-btn" data-mode="custom" onclick="setMode('custom')">🔢 Custom</button>
     </div>
     <div class="scoreboard">
         <div class="player-card" id="p1-card">
-            <div class="serve-indicator" id="p1-serve"></div>
-            <input type="text" class="player-name-input" id="p1-name" value="Player 1" maxlength="15">
-            <div class="point-display" id="p1-points">0</div>
-            <div class="match-stats">
-                <div class="match-stat"><span class="stat-label">Games</span><span class="stat-value" id="p1-games">0</span></div>
-                <div class="match-stat"><span class="stat-label">Sets</span><span class="stat-value" id="p1-sets">0</span></div>
+            <input type="text" class="player-name" id="p1-name" value="Player 1" maxlength="15">
+            <div class="sets-display" id="p1-sets">0</div>
+            <div class="games-label">Games won this set</div>
+            <div class="games-display" id="p1-games">0</div>
+            <div class="btn-row">
+                <button class="btn minus" onclick="adjustGames(1,-1)">−</button>
+                <button class="btn" onclick="adjustGames(1,1)">+</button>
             </div>
-            <div class="score-buttons">
-                <button class="score-btn minus" onclick="adjustScore(1, -1)">−</button>
-                <button class="score-btn" onclick="adjustScore(1, 1)">+</button>
+            <div class="btn-row">
+                <button class="btn btn-wide minus" onclick="adjustSets(1,-1)">Set −</button>
+                <button class="btn btn-wide" onclick="adjustSets(1,1)">Set +</button>
             </div>
         </div>
         <div class="player-card" id="p2-card">
-            <div class="serve-indicator" id="p2-serve"></div>
-            <input type="text" class="player-name-input" id="p2-name" value="Player 2" maxlength="15">
-            <div class="point-display" id="p2-points">0</div>
-            <div class="match-stats">
-                <div class="match-stat"><span class="stat-label">Games</span><span class="stat-value" id="p2-games">0</span></div>
-                <div class="match-stat"><span class="stat-label">Sets</span><span class="stat-value" id="p2-sets">0</span></div>
+            <input type="text" class="player-name" id="p2-name" value="Player 2" maxlength="15">
+            <div class="sets-display" id="p2-sets">0</div>
+            <div class="games-label">Games won this set</div>
+            <div class="games-display" id="p2-games">0</div>
+            <div class="btn-row">
+                <button class="btn minus" onclick="adjustGames(2,-1)">−</button>
+                <button class="btn" onclick="adjustGames(2,1)">+</button>
             </div>
-            <div class="score-buttons">
-                <button class="score-btn minus" onclick="adjustScore(2, -1)">−</button>
-                <button class="score-btn" onclick="adjustScore(2, 1)">+</button>
+            <div class="btn-row">
+                <button class="btn btn-wide minus" onclick="adjustSets(2,-1)">Set −</button>
+                <button class="btn btn-wide" onclick="adjustSets(2,1)">Set +</button>
             </div>
         </div>
     </div>
+    <div class="set-entry" id="set-history"></div>
     <div class="match-info" id="match-info">
-        <span id="match-info-text">Say "Start Umpire" to begin</span>
+        <span id="match-text">Say "Start Umpire" then report set scores like "6-4 Player 1"</span>
     </div>
-    <div class="voice-log" id="voice-log">
-        <div class="voice-log-entry"><span class="time">--:--</span><span>Select a sport mode and tap Start Umpire</span></div>
+    <div class="log" id="log">
+        <div class="log-entry"><span class="log-time">--:--</span><span>Tap Start Umpire and say a set result</span></div>
     </div>
     <div class="controls">
         <button class="main-btn start" id="main-btn" onclick="toggleListening()">
             <span id="btn-icon">▶</span><span id="btn-text">Start Umpire</span>
         </button>
-        <div class="secondary-controls">
-            <button class="secondary-btn" onclick="resetScores()">↺ Reset</button>
-            <button class="secondary-btn" onclick="swapPlayers()">⇄ Swap</button>
-            <button class="secondary-btn" onclick="undoLast()">↩ Undo</button>
-            <button class="secondary-btn" onclick="openSettings()">⚙ Settings</button>
+        <div class="secondary">
+            <button class="sec-btn" onclick="resetMatch()">↺ Reset</button>
+            <button class="sec-btn" onclick="swapPlayers()">⇄ Swap</button>
+            <button class="sec-btn" onclick="undoLast()">↩ Undo</button>
+            <button class="sec-btn" onclick="openSettings()">⚙ Settings</button>
         </div>
     </div>
     <div class="overlay" id="overlay" onclick="closeSettings()"></div>
-    <div class="settings-panel" id="settings-panel">
-        <div class="settings-header"><h2>⚙ Settings</h2><button class="close-settings" onclick="closeSettings()">✕</button></div>
-        <div class="settings-content">
-            <div class="setting-group">
+    <div class="settings" id="settings">
+        <div class="settings-h"><h2>⚙ Settings</h2><button class="close-s" onclick="closeSettings()">✕</button></div>
+        <div class="settings-c">
+            <div class="sg">
                 <h3>Match Rules</h3>
-                <div class="setting-row">
-                    <label>Sport Mode</label>
-                    <select class="setting-select" id="mode-select" onchange="setMode(this.value)">
-                        <option value="tennis">Tennis (15-30-40-Deuce)</option>
-                        <option value="squash">Squash (Hand-in/Hand-out)</option>
-                        <option value="tabletennis">Table Tennis (11 pts)</option>
-                        <option value="custom">Custom (Linear)</option>
-                    </select>
-                </div>
-                <div class="setting-row">
-                    <label>Points to win game</label>
-                    <input type="number" class="setting-input" id="points-per-game" value="11" min="1" max="99" onchange="updateCustomRules()">
-                </div>
-                <div class="setting-row">
-                    <label>Games to win set</label>
-                    <input type="number" class="setting-input" id="games-per-set" value="6" min="1" max="99" onchange="updateCustomRules()">
-                </div>
-                <div class="setting-row">
-                    <label>Sets to win match</label>
-                    <input type="number" class="setting-input" id="sets-to-win" value="2" min="1" max="9" onchange="updateCustomRules()">
-                </div>
-                <div class="setting-row">
-                    <label>Win by margin</label>
-                    <input type="number" class="setting-input" id="win-margin" value="2" min="1" max="10" onchange="updateCustomRules()">
-                </div>
+                <div class="sr"><label>Sport</label><select class="sel" id="mode-sel" onchange="setMode(this.value)"><option value="tennis">Tennis (best of 3/5)</option><option value="tabletennis">Table Tennis (best of 5/7)</option><option value="custom">Custom</option></select></div>
+                <div class="sr"><label>Sets to win match</label><input type="number" class="inp" id="sets-win" value="2" min="1" max="9" onchange="updateRules()"></div>
+                <div class="sr"><label>Games per set (tennis)</label><input type="number" class="inp" id="games-set" value="6" min="1" max="99" onchange="updateRules()"></div>
             </div>
-            <div class="setting-group">
+            <div class="sg">
                 <h3>Voice Control</h3>
-                <div class="setting-row"><label>Auto-restart on silence</label><div class="toggle active" id="toggle-autorestart" onclick="toggleSetting('autorestart')"></div></div>
-                <div class="setting-row"><label>Voice feedback (TTS)</label><div class="toggle active" id="toggle-tts" onclick="toggleSetting('tts')"></div></div>
-                <div class="setting-row"><label>Announce score changes</label><div class="toggle active" id="toggle-announce" onclick="toggleSetting('announce')"></div></div>
-                <div class="setting-row">
-                    <label>Language</label>
-                    <select class="setting-select" id="lang-select" onchange="changeLanguage(this.value)">
-                        <option value="en-US">English (US)</option>
-                        <option value="en-GB">English (UK)</option>
-                        <option value="es-ES">Spanish</option>
-                        <option value="fr-FR">French</option>
-                        <option value="de-DE">German</option>
-                        <option value="it-IT">Italian</option>
-                        <option value="nl-NL">Dutch</option>
-                        <option value="pt-BR">Portuguese</option>
-                    </select>
-                </div>
+                <div class="sr"><label>Auto-restart</label><div class="toggle on" id="tog-auto" onclick="toggle('autorestart')"></div></div>
+                <div class="sr"><label>Voice feedback</label><div class="toggle on" id="tog-tts" onclick="toggle('tts')"></div></div>
+                <div class="sr"><label>Announce results</label><div class="toggle on" id="tog-ann" onclick="toggle('announce')"></div></div>
+                <div class="sr"><label>Language</label><select class="sel" id="lang-sel" onchange="setLang(this.value)"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="es-ES">Spanish</option><option value="fr-FR">French</option><option value="de-DE">German</option></select></div>
             </div>
-            <div class="setting-group">
-                <h3>Display</h3>
-                <div class="setting-row"><label>Keep screen awake</label><div class="toggle active" id="toggle-wakelock" onclick="toggleSetting('wakelock')"></div></div>
-                <div class="setting-row"><label>Show serve indicator</label><div class="toggle active" id="toggle-serve" onclick="toggleSetting('serve')"></div></div>
-            </div>
-            <div class="setting-group">
+            <div class="sg">
                 <h3>Voice Commands</h3>
-                <div class="command-list" id="command-list"></div>
+                <div class="cmd-list" id="cmd-list"></div>
             </div>
-            <div class="setting-group">
+            <div class="sg">
                 <h3>About</h3>
-                <p style="color: var(--text-muted); font-size: 12px; line-height: 1.6;">
-                    Voice Umpire <strong style="color:var(--accent-primary);">v2.3</strong> (build 2026-05-11)<br>
-                    Tennis, Squash, Table Tennis & Custom scoring.<br>
-                    Works offline as a PWA. Requires microphone permission.
+                <p style="color:var(--muted);font-size:12px;line-height:1.6">
+                    Voice Umpire <strong>v2.6</strong> (build 2026-05-11-6)<br>
+                    Simplified set-level scoring. Players report games at end of each set.<br>
+                    Works offline as a PWA.
                 </p>
+            </div>
+            <div class="sg">
+                <h3>What's New in v2.6</h3>
+                <div class="changelog">
+                    <ul>
+                        <li><strong>Simplified scoring:</strong> App now tracks sets only — players report game scores per set</li>
+                        <li><strong>Manual controls:</strong> Tap +/− for games and sets on each player card</li>
+                        <li><strong>Fixed "Set" command:</strong> "Set 1" / "Set 2" correctly awards a set (not game)</li>
+                        <li><strong>Version badge:</strong> Always visible in header</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
     <div class="toast" id="toast"></div>
     <div class="install-banner" id="install-banner"><span>📲 Install Voice Umpire for offline use</span><button onclick="installPWA()">Install</button></div>
-    <video id="no-sleep-video" loop muted playsinline><source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4"></video>
+    <video id="no-sleep" loop muted playsinline><source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4"></video>
     <script>
-    // ==================== SCORING RULES ====================
-    const SCORING_RULES = {
-        tennis: {
-            name: 'Tennis',
-            pointSequence: ['0', '15', '30', '40'],
-            pointsToWinGame: 4,
-            winMargin: 2,
-            gamesPerSet: 6,
-            setsToWin: 2,
-            deuceAt: 3,
-            announceFormat: (p1, p2, names) => {
-                if (p1.points === 3 && p2.points === 3) return 'Deuce';
-                if (p1.points === 4 && p2.points === 3) return 'Advantage ' + names.p1;
-                if (p1.points === 3 && p2.points === 4) return 'Advantage ' + names.p2;
-                if (p1.points >= 4 && p2.points >= 3 && p1.points - p2.points >= 2) return 'Game ' + names.p1;
-                if (p2.points >= 4 && p1.points >= 3 && p2.points - p1.points >= 2) return 'Game ' + names.p2;
-                return p1.pointsDisplay + '-' + p2.pointsDisplay;
-            },
-            pointToDisplay: (points) => {
-                const seq = ['0', '15', '30', '40'];
-                if (points <= 3) return seq[points];
-                return '40+';
-            },
+    const APP_VERSION = '2.6';
+    const APP_BUILD = '2026-05-11-6';
+
+    const MODES = {
+        tennis: { name: 'Tennis', setsToWin: 2, gamesPerSet: 6, tiebreakAt: 6,
             commands: [
-                ['"Point [name]"', '+1 point'],
-                ['"15-Love" / "15-15" / "30-40"', 'Set score directly'],
-                ['"Deuce"', 'Set score to deuce'],
-                ['"Advantage [name]"', 'Set advantage'],
-                ['"Game [name]"', 'Award game directly'],
-                ['"Set [name]"', 'Award set directly'],
-                ['"What is the score"', 'Announce current score'],
-                ['"Score please"', 'Announce current score'],
-                ['"Minus [name]"', '-1 point'],
+                ['"6-4 Player 1" / "3-6 Player 2"', 'Record set result'],
+                ['"Player 1 won 6-4"', 'Record set result'],
+                ['"Set Player 1"', 'Award set directly'],
+                ['"Set Player 2"', 'Award set directly'],
+                ['"What is the score"', 'Announce match score'],
+                ['"Undo"', 'Undo last set'],
                 ['"Reset"', 'Reset match'],
-                ['"New game" / "Next game" / "Game over"', 'Start next game (keep sets)'],
-                ['"Change serve" / "Your serve"', 'Switch who is serving'],
-                ['"New set" / "Next set" / "Set over"', 'Start next set (keep match)'],
-                ['"Swap" / "Switch"', 'Swap sides'],
-                ['"Undo"', 'Undo last action'],
-                ['"Stop" / "Pause"', 'Stop listening']
-            ]
-        },
-        squash: {
-            name: 'Squash',
-            pointSequence: null,
-            pointsToWinGame: 11,
-            winMargin: 2,
-            gamesPerSet: 1,
-            setsToWin: 3,
-            handInHandOut: true,
-            announceFormat: (p1, p2, names) => p1.points + '-' + p2.points,
-            pointToDisplay: (points) => String(points),
-            commands: [
-                ['"Point [name]"', '+1 point (server keeps serve if wins, loses if loses)'],
-                ['"3-2" / "11-9" / "Five Three"', 'Set score directly'],
-                ['"Game [name]"', 'Award game'],
-                ['"What is the score"', 'Announce score'],
-                ['"Score please"', 'Announce score'],
-                ['"Minus [name]"', '-1 point'],
-                ['"Reset"', 'Reset match'],
-                ['"New game" / "Next game" / "Game over"', 'Start next game'],
-                ['"Change serve" / "Your serve"', 'Switch server'],
-                ['"Swap" / "Switch"', 'Swap sides'],
-                ['"Undo"', 'Undo last'],
+                ['"Swap"', 'Swap players'],
                 ['"Stop"', 'Stop listening']
             ]
         },
-        tabletennis: {
-            name: 'Table Tennis',
-            pointSequence: null,
-            pointsToWinGame: 11,
-            winMargin: 2,
-            gamesPerSet: 1,
-            setsToWin: 3,
-            serveEvery: 2,
-            announceFormat: (p1, p2, names) => p1.points + '-' + p2.points,
-            pointToDisplay: (points) => String(points),
+        tabletennis: { name: 'Table Tennis', setsToWin: 3, gamesPerSet: 1,
             commands: [
-                ['"Point [name]"', '+1 point'],
-                ['"3-2" / "11-9" / "Five Three"', 'Set score directly'],
-                ['"Game [name]"', 'Award game'],
-                ['"What is the score"', 'Announce score'],
-                ['"Score please"', 'Announce score'],
-                ['"Minus [name]"', '-1 point'],
+                ['"3-2 Player 1" / "11-9 Player 2"', 'Record set result'],
+                ['"Player 1 won 11-9"', 'Record set result'],
+                ['"Set Player 1"', 'Award set directly'],
+                ['"Set Player 2"', 'Award set directly'],
+                ['"What is the score"', 'Announce match score'],
+                ['"Undo"', 'Undo last set'],
                 ['"Reset"', 'Reset match'],
-                ['"New game" / "Next game" / "Game over"', 'Start next game'],
-                ['"Change serve" / "Your serve"', 'Switch server'],
-                ['"Swap"', 'Swap sides'],
-                ['"Undo"', 'Undo'],
-                ['"Stop"', 'Stop']
+                ['"Swap"', 'Swap players'],
+                ['"Stop"', 'Stop listening']
             ]
         },
-        custom: {
-            name: 'Custom',
-            pointSequence: null,
-            pointsToWinGame: 11,
-            winMargin: 2,
-            gamesPerSet: 6,
-            setsToWin: 2,
-            announceFormat: (p1, p2, names) => p1.points + '-' + p2.points,
-            pointToDisplay: (points) => String(points),
+        custom: { name: 'Custom', setsToWin: 2, gamesPerSet: 6, tiebreakAt: 6,
             commands: [
-                ['"Point [name]"', '+1 point'],
-                ['"3-2" / "11-9" / "Five Three"', 'Set score directly'],
-                ['"Game [name]"', 'Award game'],
-                ['"Set [name]"', 'Award set'],
-                ['"What is the score"', 'Announce score'],
-                ['"Score please"', 'Announce score'],
-                ['"Minus [name]"', '-1 point'],
-                ['"Reset"', 'Reset'],
-                ['"New game" / "Next game" / "Game over"', 'Next game'],
-                ['"Change serve" / "Your serve"', 'Switch server'],
-                ['"New set" / "Next set" / "Set over"', 'Next set'],
-                ['"Swap"', 'Swap'],
-                ['"Undo"', 'Undo'],
-                ['"Stop"', 'Stop']
+                ['"6-4 Player 1"', 'Record set result'],
+                ['"Set Player 1"', 'Award set directly'],
+                ['"Set Player 2"', 'Award set directly'],
+                ['"What is the score"', 'Announce match score'],
+                ['"Undo"', 'Undo last set'],
+                ['"Reset"', 'Reset match'],
+                ['"Swap"', 'Swap players'],
+                ['"Stop"', 'Stop listening']
             ]
         }
     };
 
-    // ==================== VERSION ====================
-    const APP_VERSION = '2.3';
-    const APP_BUILD = '2026-05-11-3';
-
-    // ==================== STATE ====================
     let state = {
         mode: 'tennis',
-        p1: { points: 0, games: 0, sets: 0, pointsDisplay: '0' },
-        p2: { points: 0, games: 0, sets: 0, pointsDisplay: '0' },
-        p1Name: 'Player 1',
-        p2Name: 'Player 2',
+        p1: { sets: 0, games: 0 },
+        p2: { sets: 0, games: 0 },
+        p1Name: 'Player 1', p2Name: 'Player 2',
         history: [],
+        setHistory: [],
         isListening: false,
         recognition: null,
         wakeLock: null,
-        noSleepVideo: null,
-        settings: {
-            autorestart: true,
-            tts: true,
-            announce: true,
-            wakelock: true,
-            serve: true,
-            lang: 'en-US',
-            customPointsToWin: 11,
-            customGamesPerSet: 6,
-            customSetsToWin: 2,
-            customWinMargin: 2
-        },
+        settings: { autorestart: true, tts: true, announce: true, wakelock: true, lang: 'en-US', setsToWin: 2, gamesPerSet: 6 },
         consecutiveErrors: 0,
-        lastCommandTime: 0,
-        servePlayer: 1,        // Who is serving THIS point (changes during game)
-        gameServer: 1,           // Who started serving THIS game (fixed for the game)
-        setServer: 1,          // Who served first in THIS set (for tracking rotation)
-        lastPointWinner: null,  // Who won the LAST point (for squash serve tracking)
-        serveCount: 0,
+        lastCmdTime: 0,
         matchComplete: false
     };
 
     let deferredPrompt = null;
 
-    // ==================== DOM REFS ====================
     const els = {
-        p1Points: document.getElementById('p1-points'),
-        p2Points: document.getElementById('p2-points'),
-        p1Games: document.getElementById('p1-games'),
-        p2Games: document.getElementById('p2-games'),
-        p1Sets: document.getElementById('p1-sets'),
-        p2Sets: document.getElementById('p2-sets'),
-        p1Name: document.getElementById('p1-name'),
-        p2Name: document.getElementById('p2-name'),
-        p1Card: document.getElementById('p1-card'),
-        p2Card: document.getElementById('p2-card'),
-        p1Serve: document.getElementById('p1-serve'),
-        p2Serve: document.getElementById('p2-serve'),
-        statusPill: document.getElementById('status-pill'),
-        mainBtn: document.getElementById('main-btn'),
-        btnIcon: document.getElementById('btn-icon'),
-        btnText: document.getElementById('btn-text'),
-        voiceLog: document.getElementById('voice-log'),
-        matchInfo: document.getElementById('match-info'),
-        matchInfoText: document.getElementById('match-info-text'),
-        toast: document.getElementById('toast'),
-        noSleepVideo: document.getElementById('no-sleep-video'),
-        modeBar: document.getElementById('mode-bar'),
-        commandList: document.getElementById('command-list')
+        p1Sets: document.getElementById('p1-sets'), p2Sets: document.getElementById('p2-sets'),
+        p1Games: document.getElementById('p1-games'), p2Games: document.getElementById('p2-games'),
+        p1Name: document.getElementById('p1-name'), p2Name: document.getElementById('p2-name'),
+        p1Card: document.getElementById('p1-card'), p2Card: document.getElementById('p2-card'),
+        status: document.getElementById('status'), mainBtn: document.getElementById('main-btn'),
+        btnIcon: document.getElementById('btn-icon'), btnText: document.getElementById('btn-text'),
+        log: document.getElementById('log'), matchText: document.getElementById('match-text'),
+        toast: document.getElementById('toast'), setHistory: document.getElementById('set-history'),
+        noSleep: document.getElementById('no-sleep'), cmdList: document.getElementById('cmd-list')
     };
 
-    // ==================== INIT ====================
     function init() {
         loadSettings();
         setMode(state.mode, false);
         updateUI();
-        setupInstallPrompt();
-        setupVisibilityHandler();
-        updateCommandList();
-        els.p1Name.addEventListener('change', (e) => { state.p1Name = e.target.value || 'Player 1'; });
-        els.p2Name.addEventListener('change', (e) => { state.p2Name = e.target.value || 'Player 2'; });
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) e.preventDefault();
-            lastTouchEnd = now;
-        }, false);
+        updateCmdList();
+        els.p1Name.addEventListener('change', e => state.p1Name = e.target.value || 'Player 1');
+        els.p2Name.addEventListener('change', e => state.p2Name = e.target.value || 'Player 2');
+        setupInstall();
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
     }
 
-    // ==================== MODE MANAGEMENT ====================
     function setMode(mode, save) {
         state.mode = mode;
-        const rules = SCORING_RULES[mode];
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === mode);
-        });
-        document.getElementById('points-per-game').value = rules.pointsToWinGame;
-        document.getElementById('games-per-set').value = rules.gamesPerSet;
-        document.getElementById('sets-to-win').value = rules.setsToWin;
-        document.getElementById('win-margin').value = rules.winMargin;
-        document.getElementById('mode-select').value = mode;
-        const statLabels = document.querySelectorAll('.stat-label');
-        if (mode === 'squash') {
-            statLabels[0].textContent = 'Games';
-            statLabels[1].textContent = 'Matches';
-            statLabels[2].textContent = 'Games';
-            statLabels[3].textContent = 'Matches';
-        } else {
-            statLabels[0].textContent = 'Games';
-            statLabels[1].textContent = 'Sets';
-            statLabels[2].textContent = 'Games';
-            statLabels[3].textContent = 'Sets';
-        }
-        updateCommandList();
-        if (save !== false) {
-            saveSettings();
-            resetScores(false);
-        }
+        const m = MODES[mode];
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+        document.getElementById('mode-sel').value = mode;
+        document.getElementById('sets-win').value = state.settings.setsToWin || m.setsToWin;
+        document.getElementById('games-set').value = state.settings.gamesPerSet || m.gamesPerSet;
+        document.querySelectorAll('.games-label').forEach(l => l.textContent = mode === 'tabletennis' ? 'Points won this set' : 'Games won this set');
+        updateCmdList();
+        if (save !== false) { saveSettings(); resetMatch(false); }
     }
 
-    function updateCustomRules() {
-        if (state.mode !== 'custom') return;
-        state.settings.customPointsToWin = parseInt(document.getElementById('points-per-game').value) || 11;
-        state.settings.customGamesPerSet = parseInt(document.getElementById('games-per-set').value) || 6;
-        state.settings.customSetsToWin = parseInt(document.getElementById('sets-to-win').value) || 2;
-        state.settings.customWinMargin = parseInt(document.getElementById('win-margin').value) || 2;
+    function updateRules() {
+        state.settings.setsToWin = parseInt(document.getElementById('sets-win').value) || 2;
+        state.settings.gamesPerSet = parseInt(document.getElementById('games-set').value) || 6;
         saveSettings();
     }
 
     function getRules() {
-        const base = SCORING_RULES[state.mode];
-        if (state.mode === 'custom') {
-            return {
-                ...base,
-                pointsToWinGame: state.settings.customPointsToWin,
-                gamesPerSet: state.settings.customGamesPerSet,
-                setsToWin: state.settings.customSetsToWin,
-                winMargin: state.settings.customWinMargin
-            };
-        }
-        return base;
+        const base = MODES[state.mode];
+        return { ...base, setsToWin: state.settings.setsToWin || base.setsToWin, gamesPerSet: state.settings.gamesPerSet || base.gamesPerSet };
     }
 
-    function updateCommandList() {
+    function updateCmdList() {
         const rules = getRules();
-        els.commandList.innerHTML = rules.commands.map(([trigger, action]) =>
-            '<div class="command-item"><span class="trigger">' + trigger + '</span><span class="action">' + action + '</span></div>'
-        ).join('');
+        els.cmdList.innerHTML = rules.commands.map(([t,a]) => '<div class="cmd-item"><span class="t">'+t+'</span><span class="a">'+a+'</span></div>').join('');
     }
 
-    // ==================== SCORE LOGIC ====================
-    function adjustScore(player, delta) {
-        if (state.matchComplete && delta > 0) {
-            showToast('Match is complete. Reset to start new match.', 'error');
-            return;
-        }
-        saveToHistory();
-        const target = player === 1 ? state.p1 : state.p2;
-        const opponent = player === 1 ? state.p2 : state.p1;
+    function adjustGames(player, delta) {
+        if (state.matchComplete && delta > 0) { showToast('Match complete. Reset to start new.', 'error'); return; }
+        saveHist();
+        const t = player === 1 ? state.p1 : state.p2;
+        t.games = Math.max(0, t.games + delta);
+        updateUI();
+    }
+
+    function adjustSets(player, delta) {
+        if (state.matchComplete && delta > 0) { showToast('Match complete. Reset to start new.', 'error'); return; }
+        saveHist();
+        const t = player === 1 ? state.p1 : state.p2;
+        t.sets = Math.max(0, t.sets + delta);
+        checkMatchWin();
+        updateUI();
+    }
+
+    function recordSet(p1Games, p2Games, winner) {
+        if (state.matchComplete) { showToast('Match complete. Reset to start new.', 'error'); return; }
+        saveHist();
+        state.p1.games = p1Games;
+        state.p2.games = p2Games;
+        const w = winner === 1 ? state.p1 : state.p2;
+        w.sets++;
+        state.setHistory.push({ p1: p1Games, p2: p2Games, winner: winner });
         const rules = getRules();
-        if (delta > 0) {
-            target.points++;
-            state.lastPointWinner = player;  // Track who won this point (for squash serve)
-            if (checkGameWin(target, opponent, rules)) {
-                awardGame(player, rules);
-                return;
-            }
-        } else {
-            if (rules.pointSequence && target.points > 0) {
-                target.points--;
-            } else {
-                target.points = Math.max(0, target.points - 1);
-            }
-        }
-        updatePointDisplays();
-        updateServeIndicator();
+        const wName = winner === 1 ? state.p1Name : state.p2Name;
+        const announce = 'Set ' + wName + ' — ' + p1Games + '-' + p2Games;
+        showToast(announce, 'announce');
+        if (state.settings.tts) speak(announce);
+        log('Set', announce);
+        checkMatchWin();
         updateUI();
-        if (state.settings.announce && delta > 0) {
-            announceScore();
-        }
     }
 
-    function checkGameWin(player, opponent, rules) {
-        const minPoints = rules.pointsToWinGame;
-        const margin = rules.winMargin;
-        if (rules.pointSequence) {
-            if (player.points >= minPoints && player.points - opponent.points >= margin) return true;
-            if (player.points >= 4 && opponent.points >= 3 && player.points - opponent.points >= 2) return true;
-        } else {
-            if (player.points >= minPoints && player.points - opponent.points >= margin) return true;
-        }
-        return false;
-    }
-
-    function awardGame(winner, rules) {
-        const winnerState = winner === 1 ? state.p1 : state.p2;
-        const loserState = winner === 1 ? state.p2 : state.p1;
-        winnerState.games++;
-        const winnerName = winner === 1 ? state.p1Name : state.p2Name;
-        const announceText = 'Game ' + winnerName;
-        state.p1.points = 0;
-        state.p2.points = 0;
-        state.serveCount = 0;
-        if (winnerState.games >= rules.gamesPerSet) {
-            if (state.mode === 'tennis' && winnerState.games >= 6 && loserState.games >= 5) {
-                if (winnerState.games - loserState.games < 2 && winnerState.games < 7) {
-                    updatePointDisplays();
-                    updateServeIndicator();
-                    updateUI();
-                    showToast(announceText, 'announce');
-                    if (state.settings.tts) speak(announceText);
-                    logVoice('Game', announceText);
-                    return;
-                }
-            }
-            awardSet(winner, rules);
-            return;
-        }
-        // Rotate server for next game based on sport rules
-        if (state.mode === 'tennis') {
-            // Tennis: receiver of this game serves next game
-            state.gameServer = state.gameServer === 1 ? 2 : 1;
-        } else if (state.mode === 'squash') {
-            // Squash: winner of this game serves first in next game
-            state.gameServer = winner;
-        } else {
-            // Table tennis/Custom: alternate
-            state.gameServer = state.gameServer === 1 ? 2 : 1;
-        }
-        state.servePlayer = state.gameServer;
-        state.lastPointWinner = null;
-        updatePointDisplays();
-        updateServeIndicator();
-        updateUI();
-        const nextServerName = state.gameServer === 1 ? state.p1Name : state.p2Name;
-        showToast(announceText, 'announce');
-        if (state.settings.tts) speak(announceText + '. Next game. ' + nextServerName + ' to serve.');
-        logVoice('Game', announceText + ' — Next game: ' + nextServerName + ' serving');
-        els.matchInfoText.innerHTML = '<span class="announcer">Next game — ' + nextServerName + ' to serve</span>';
-    }
-
-    function awardSet(winner, rules) {
-        const winnerState = winner === 1 ? state.p1 : state.p2;
-        const loserState = winner === 1 ? state.p2 : state.p1;
-        winnerState.sets++;
-        const winnerName = winner === 1 ? state.p1Name : state.p2Name;
-        const announceText = 'Set ' + winnerName;
-        state.p1.games = 0;
-        state.p2.games = 0;
-        state.p1.points = 0;
-        state.p2.points = 0;
-        state.serveCount = 0;
-        if (winnerState.sets >= rules.setsToWin) {
+    function checkMatchWin() {
+        const rules = getRules();
+        if (state.p1.sets >= rules.setsToWin) {
             state.matchComplete = true;
-            const matchText = 'Match ' + winnerName;
-            updatePointDisplays();
-            updateServeIndicator();
-            updateUI();
-            showToast(matchText, 'announce');
-            if (state.settings.tts) speak(matchText + ' wins the match. Match over.');
-            logVoice('Match', matchText + ' wins the match!');
-            els.matchInfoText.innerHTML = '<span class="announcer">Match complete — ' + matchText + ' wins!</span>';
-            return;
+            const txt = 'Match ' + state.p1Name;
+            showToast(txt, 'announce');
+            if (state.settings.tts) speak(txt + ' wins the match!');
+            log('Match', txt + ' wins!');
+            els.matchText.innerHTML = '<span class="announcer">Match complete — ' + txt + ' wins!</span>';
+        } else if (state.p2.sets >= rules.setsToWin) {
+            state.matchComplete = true;
+            const txt = 'Match ' + state.p2Name;
+            showToast(txt, 'announce');
+            if (state.settings.tts) speak(txt + ' wins the match!');
+            log('Match', txt + ' wins!');
+            els.matchText.innerHTML = '<span class="announcer">Match complete — ' + txt + ' wins!</span>';
         }
-        // Set up server for next set
-        state.setServer = state.setServer === 1 ? 2 : 1;
-        state.gameServer = state.setServer;
-        state.servePlayer = state.setServer;
-        state.lastPointWinner = null;
-        updatePointDisplays();
-        updateServeIndicator();
-        updateUI();
-        const nextSetServer = state.gameServer === 1 ? state.p1Name : state.p2Name;
-        showToast(announceText, 'announce');
-        if (state.settings.tts) speak(announceText + '. Next set. ' + nextSetServer + ' to serve.');
-        logVoice('Set', announceText + ' — Next set: ' + nextSetServer + ' serving');
-        els.matchInfoText.innerHTML = '<span class="announcer">Next set — ' + nextSetServer + ' to serve</span>';
     }
 
-    function updatePointDisplays() {
-        const rules = getRules();
-        state.p1.pointsDisplay = rules.pointToDisplay(state.p1.points);
-        state.p2.pointsDisplay = rules.pointToDisplay(state.p2.points);
+    function updateUI() {
+        els.p1Sets.textContent = state.p1.sets;
+        els.p2Sets.textContent = state.p2.sets;
+        els.p1Games.textContent = state.p1.games;
+        els.p2Games.textContent = state.p2.games;
+        document.querySelectorAll('.player-card').forEach(c => c.classList.remove('active','winner'));
+        if (state.p1.sets > state.p2.sets) els.p1Card.classList.add('active');
+        else if (state.p2.sets > state.p1.sets) els.p2Card.classList.add('active');
+        if (state.matchComplete) {
+            (state.p1.sets > state.p2.sets ? els.p1Card : els.p2Card).classList.add('winner');
+        }
+        // Show set history
+        if (state.setHistory.length > 0) {
+            els.setHistory.innerHTML = state.setHistory.map((s,i) => 
+                '<span>Set '+(i+1)+': '+s.p1+'-'+s.p2+'</span>').join('');
+        } else {
+            els.setHistory.innerHTML = '';
+        }
     }
 
-    function announceScore() {
-        const rules = getRules();
-        const text = rules.announceFormat(state.p1, state.p2, { p1: state.p1Name, p2: state.p2Name });
-        const serverName = state.servePlayer === 1 ? state.p1Name : state.p2Name;
-        els.matchInfoText.innerHTML = '<span class="announcer">' + text + '</span> <span style="color:var(--text-muted);font-size:11px;">(' + serverName + ' serving)</span>';
-        if (state.settings.tts) speak(text);
-    }
-
-    function saveToHistory() {
+    function saveHist() {
         state.history.push({
-            p1: { points: state.p1.points, games: state.p1.games, sets: state.p1.sets, pointsDisplay: state.p1.pointsDisplay },
-            p2: { points: state.p2.points, games: state.p2.games, sets: state.p2.sets, pointsDisplay: state.p2.pointsDisplay },
-            p1Name: state.p1Name,
-            p2Name: state.p2Name,
-            servePlayer: state.servePlayer,
-            gameServer: state.gameServer,
-            setServer: state.setServer,
-            lastPointWinner: state.lastPointWinner,
-            serveCount: state.serveCount,
+            p1: { ...state.p1 }, p2: { ...state.p2 },
+            p1Name: state.p1Name, p2Name: state.p2Name,
+            setHistory: [...state.setHistory],
             matchComplete: state.matchComplete,
-            timestamp: Date.now()
+            ts: Date.now()
         });
-        if (state.history.length > 50) state.history.shift();
+        if (state.history.length > 30) state.history.shift();
     }
 
-    function resetScores(fullReset) {
-        saveToHistory();
-        state.p1.points = 0; state.p1.games = 0; state.p1.sets = 0;
-        state.p2.points = 0; state.p2.games = 0; state.p2.sets = 0;
-        state.servePlayer = 1;
-        state.gameServer = 1;
-        state.setServer = 1;
-        state.lastPointWinner = null;
-        state.serveCount = 0;
+    function resetMatch(full) {
+        saveHist();
+        state.p1.sets = 0; state.p1.games = 0;
+        state.p2.sets = 0; state.p2.games = 0;
+        state.setHistory = [];
         state.matchComplete = false;
-        updatePointDisplays();
-        updateServeIndicator();
         updateUI();
-        const text = fullReset !== false ? 'Match reset' : 'New match';
-        logVoice('Action', text);
-        if (state.settings.tts) speak(text);
-        els.matchInfoText.textContent = text;
-    }
-
-    function newGame() {
-        saveToHistory();
-        state.p1.points = 0;
-        state.p2.points = 0;
-        state.serveCount = 0;
-        state.lastPointWinner = null;
-        // Rotate game server: receiver of last game serves next game
-        state.gameServer = state.gameServer === 1 ? 2 : 1;
-        state.servePlayer = state.gameServer;
-        updatePointDisplays();
-        updateServeIndicator();
-        updateUI();
-        const serverName = state.gameServer === 1 ? state.p1Name : state.p2Name;
-        els.matchInfoText.innerHTML = '<span class="announcer">New game — ' + serverName + ' to serve</span>';
-        logVoice('Action', 'New game — ' + serverName + ' serving');
-        if (state.settings.tts) speak('New game. ' + serverName + ' to serve.');
-    }
-
-    function newSet() {
-        saveToHistory();
-        state.p1.points = 0; state.p1.games = 0;
-        state.p2.points = 0; state.p2.games = 0;
-        state.serveCount = 0;
-        state.lastPointWinner = null;
-        // In tennis, players can choose who serves first in a new set
-        // We keep the same rotation pattern: alternate set-first-server
-        state.setServer = state.setServer === 1 ? 2 : 1;
-        state.gameServer = state.setServer;
-        state.servePlayer = state.setServer;
-        updatePointDisplays();
-        updateServeIndicator();
-        updateUI();
-        const serverName = state.gameServer === 1 ? state.p1Name : state.p2Name;
-        els.matchInfoText.innerHTML = '<span class="announcer">New set — ' + serverName + ' to serve</span>';
-        logVoice('Action', 'New set — ' + serverName + ' serving first');
-        if (state.settings.tts) speak('New set. ' + serverName + ' to serve.');
-    }
-
-    function undoLast() {
-        if (state.history.length === 0) {
-            showToast('Nothing to undo', 'error');
-            return;
-        }
-        const last = state.history.pop();
-        state.p1 = { points: last.p1.points, games: last.p1.games, sets: last.p1.sets, pointsDisplay: last.p1.pointsDisplay };
-        state.p2 = { points: last.p2.points, games: last.p2.games, sets: last.p2.sets, pointsDisplay: last.p2.pointsDisplay };
-        state.p1Name = last.p1Name;
-        state.p2Name = last.p2Name;
-        state.servePlayer = last.servePlayer;
-        state.gameServer = last.gameServer || state.gameServer;
-        state.setServer = last.setServer || state.setServer;
-        state.lastPointWinner = last.lastPointWinner !== undefined ? last.lastPointWinner : null;
-        state.serveCount = last.serveCount;
-        state.matchComplete = last.matchComplete;
-        els.p1Name.value = state.p1Name;
-        els.p2Name.value = state.p2Name;
-        updatePointDisplays();
-        updateServeIndicator();
-        updateUI();
-        logVoice('Action', 'Undo last action');
-        if (state.settings.tts) speak('Undo');
+        const txt = full !== false ? 'Match reset' : 'New match';
+        log('Action', txt);
+        if (state.settings.tts) speak(txt);
+        els.matchText.textContent = txt;
     }
 
     function swapPlayers() {
-        saveToHistory();
-        const tempPoints = state.p1.points;
-        state.p1.points = state.p2.points;
-        state.p2.points = tempPoints;
-        const tempGames = state.p1.games;
-        state.p1.games = state.p2.games;
-        state.p2.games = tempGames;
-        const tempSets = state.p1.sets;
-        state.p1.sets = state.p2.sets;
-        state.p2.sets = tempSets;
-        const tempDisp = state.p1.pointsDisplay;
-        state.p1.pointsDisplay = state.p2.pointsDisplay;
-        state.p2.pointsDisplay = tempDisp;
-        const tempName = state.p1Name;
-        state.p1Name = state.p2Name;
-        state.p2Name = tempName;
-        els.p1Name.value = state.p1Name;
-        els.p2Name.value = state.p2Name;
-        state.servePlayer = state.servePlayer === 1 ? 2 : 1;
-        updateServeIndicator();
+        saveHist();
+        const ts = state.p1.sets, tg = state.p1.games;
+        state.p1.sets = state.p2.sets; state.p1.games = state.p2.games;
+        state.p2.sets = ts; state.p2.games = tg;
+        const tn = state.p1Name;
+        state.p1Name = state.p2Name; state.p2Name = tn;
+        els.p1Name.value = state.p1Name; els.p2Name.value = state.p2Name;
+        // Swap set history winner references
+        state.setHistory.forEach(s => { if (s.winner === 1) s.winner = 2; else if (s.winner === 2) s.winner = 1; });
         updateUI();
-        logVoice('Action', 'Players swapped');
+        log('Action', 'Players swapped');
         if (state.settings.tts) speak('Players swapped');
     }
 
-    function updateServeIndicator() {
-        if (!state.settings.serve) {
-            els.p1Serve.classList.remove('visible');
-            els.p2Serve.classList.remove('visible');
-            return;
-        }
-        const totalPoints = state.p1.points + state.p2.points;
+    function undoLast() {
+        if (state.history.length === 0) { showToast('Nothing to undo', 'error'); return; }
+        const last = state.history.pop();
+        state.p1 = { ...last.p1 }; state.p2 = { ...last.p2 };
+        state.p1Name = last.p1Name; state.p2Name = last.p2Name;
+        state.setHistory = [...last.setHistory];
+        state.matchComplete = last.matchComplete;
+        els.p1Name.value = state.p1Name; els.p2Name.value = state.p2Name;
+        updateUI();
+        log('Action', 'Undo');
+        if (state.settings.tts) speak('Undo');
+    }
 
-        if (state.mode === 'tennis') {
-            // Tennis: ONE player serves the ENTIRE game.
-            // The gameServer is fixed for the whole game.
-            // Players switch SIDES every 2 points, but server stays the same.
-            state.servePlayer = state.gameServer;
-        } else if (state.mode === 'squash') {
-            // Squash PAR: server serves until they LOSE a rally.
-            // If server wins rally: keeps serve.
-            // If receiver wins rally: becomes server.
-            // We track this via lastPointWinner.
-            if (state.lastPointWinner !== null && state.lastPointWinner !== state.servePlayer) {
-                // Receiver won the last point, so they become server
-                state.servePlayer = state.lastPointWinner;
+    // ==================== VOICE COMMAND PARSING ====================
+    function processCommand(t) {
+        const now = Date.now();
+        if (now - state.lastCmdTime < 1200) { log('Ignored', '"'+t+'" (too fast)'); return; }
+        const p1n = state.p1Name.toLowerCase(), p2n = state.p2Name.toLowerCase();
+        let matched = false, action = '';
+
+        // Score announcement
+        if (/what('| i)s the score|score please|current score|read score/.test(t)) {
+            const txt = state.p1Name + ' ' + state.p1.sets + ' sets, ' + state.p2Name + ' ' + state.p2.sets + ' sets';
+            if (state.settings.tts) speak(txt);
+            els.matchText.innerHTML = '<span class="announcer">'+txt+'</span>';
+            log('Command', txt); matched = true;
+        }
+        // Set result patterns: "6-4 player 1", "player 1 won 6-4", "6 4 to player 1"
+        else {
+            const scorePattern = /(\d{1,2})[\s\-–—](\d{1,2})/;
+            const scoreMatch = t.match(scorePattern);
+            if (scoreMatch) {
+                const g1 = parseInt(scoreMatch[1]), g2 = parseInt(scoreMatch[2]);
+                let winner = null;
+                // Determine winner from phrase
+                if (t.includes(p1n) || t.includes('player one') || t.includes('player 1') || t.includes('team one') || t.includes('home')) winner = 1;
+                else if (t.includes(p2n) || t.includes('player two') || t.includes('player 2') || t.includes('team two') || t.includes('away')) winner = 2;
+                // If no name mentioned, assume first number is winner (common convention)
+                if (!winner && g1 > g2) winner = 1;
+                else if (!winner && g2 > g1) winner = 2;
+                if (winner) {
+                    recordSet(g1, g2, winner);
+                    action = 'Set recorded: ' + g1 + '-' + g2 + ' to ' + (winner===1?state.p1Name:state.p2Name);
+                    matched = true;
+                }
             }
-            // If server won or no last point, servePlayer stays the same
-        } else if (state.mode === 'tabletennis') {
-            // Table tennis: alternate every 2 points
-            // At 10-10, alternate every point
-            const p1p = state.p1.points;
-            const p2p = state.p2.points;
-            if (p1p >= 10 && p2p >= 10) {
-                // Deuce: alternate every point
-                state.servePlayer = (totalPoints % 2 === 0) ? state.gameServer : (state.gameServer === 1 ? 2 : 1);
-            } else {
-                // Normal: alternate every 2 points
-                const serverIndex = Math.floor(totalPoints / 2) % 2;
-                state.servePlayer = (serverIndex === 0) ? state.gameServer : (state.gameServer === 1 ? 2 : 1);
-            }
+        }
+        // Direct set award: "set player 1"
+        if (!matched && /set (player |p)?(one|1|home)/.test(t)) {
+            saveHist(); state.p1.sets++; checkMatchWin(); updateUI();
+            action = 'Set awarded to ' + state.p1Name; matched = true;
+            showToast(action, 'announce'); if (state.settings.tts) speak(action);
+        }
+        if (!matched && /set (player |p)?(two|2|away)/.test(t)) {
+            saveHist(); state.p2.sets++; checkMatchWin(); updateUI();
+            action = 'Set awarded to ' + state.p2Name; matched = true;
+            showToast(action, 'announce'); if (state.settings.tts) speak(action);
+        }
+        // Game adjustment via voice (for manual corrections)
+        if (!matched && /(add |plus )?game (to )?(player |p)?(one|1|home)/.test(t)) {
+            adjustGames(1, 1); action = 'Game added to ' + state.p1Name; matched = true;
+        }
+        if (!matched && /(add |plus )?game (to )?(player |p)?(two|2|away)/.test(t)) {
+            adjustGames(2, 1); action = 'Game added to ' + state.p2Name; matched = true;
+        }
+        // Control commands
+        if (!matched && /^(reset|start over|new match)/.test(t)) { resetMatch(true); action='Match reset'; matched=true; }
+        if (!matched && /^(undo|go back)/.test(t)) { undoLast(); action='Undo'; matched=true; }
+        if (!matched && /^(swap|switch|change sides)/.test(t)) { swapPlayers(); action='Players swapped'; matched=true; }
+        if (!matched && /^(stop|pause|halt)/.test(t)) { stopListening(); action='Stopped'; matched=true; }
+
+        if (matched) {
+            state.lastCmdTime = now; state.consecutiveErrors = 0;
+            if (action) log('Command', action + ' — heard: "' + t + '"');
         } else {
-            // Custom: alternate every point
-            state.servePlayer = (totalPoints % 2 === 0) ? 1 : 2;
+            log('Heard', '"' + t + '" (no match)');
         }
-
-        els.p1Serve.classList.toggle('visible', state.servePlayer === 1);
-        els.p2Serve.classList.toggle('visible', state.servePlayer === 2);
-    }
-
-    // ==================== UI UPDATES ====================
-    function updateUI() {
-        els.p1Points.textContent = state.p1.pointsDisplay;
-        els.p2Points.textContent = state.p2.pointsDisplay;
-        els.p1Games.textContent = state.p1.games;
-        els.p2Games.textContent = state.p2.games;
-        els.p1Sets.textContent = state.p1.sets;
-        els.p2Sets.textContent = state.p2.sets;
-        document.querySelectorAll('.stat-value').forEach(el => el.classList.remove('active'));
-        if (state.p1.games > state.p2.games) els.p1Games.classList.add('active');
-        else if (state.p2.games > state.p1.games) els.p2Games.classList.add('active');
-        if (state.p1.sets > state.p2.sets) els.p1Sets.classList.add('active');
-        else if (state.p2.sets > state.p1.sets) els.p2Sets.classList.add('active');
-        const p1Total = state.p1.sets * 1000 + state.p1.games * 100 + state.p1.points;
-        const p2Total = state.p2.sets * 1000 + state.p2.games * 100 + state.p2.points;
-        if (p1Total > p2Total) {
-            els.p1Card.classList.add('active');
-            els.p2Card.classList.remove('active');
-        } else if (p2Total > p1Total) {
-            els.p2Card.classList.add('active');
-            els.p1Card.classList.remove('active');
-        } else {
-            els.p1Card.classList.remove('active');
-            els.p2Card.classList.remove('active');
-        }
-        if (state.matchComplete) {
-            const winnerCard = state.p1.sets > state.p2.sets ? els.p1Card : els.p2Card;
-            winnerCard.classList.add('winner');
-        } else {
-            els.p1Card.classList.remove('winner');
-            els.p2Card.classList.remove('winner');
-        }
-    }
-
-    function animateScore(element) {
-        element.classList.remove('bump');
-        void element.offsetWidth;
-        element.classList.add('bump');
-    }
-
-    function updateStatus(type, text) {
-        els.statusPill.className = 'status-pill ' + type;
-        els.statusPill.textContent = text;
-    }
-
-    function updateMainButton() {
-        if (state.isListening) {
-            els.mainBtn.className = 'main-btn stop';
-            els.btnIcon.textContent = '⏹';
-            els.btnText.textContent = 'Stop Umpire';
-        } else {
-            els.mainBtn.className = 'main-btn start';
-            els.btnIcon.textContent = '▶';
-            els.btnText.textContent = 'Start Umpire';
-        }
-    }
-
-    function logVoice(type, message) {
-        const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const entry = document.createElement('div');
-        entry.className = 'voice-log-entry';
-        let typeClass = '';
-        if (type === 'Error') typeClass = 'error';
-        else if (type === 'Command') typeClass = 'command';
-        else if (type === 'Game' || type === 'Set' || type === 'Match') typeClass = 'announce';
-        entry.innerHTML = '<span class="time">' + time + '</span><span class="' + typeClass + '">' + type + ':</span> <span class="heard">' + message + '</span>';
-        els.voiceLog.insertBefore(entry, els.voiceLog.firstChild);
-        while (els.voiceLog.children.length > 20) {
-            els.voiceLog.removeChild(els.voiceLog.lastChild);
-        }
-    }
-
-    function showToast(message, type) {
-        els.toast.textContent = message;
-        els.toast.className = 'toast show ' + (type || '');
-        setTimeout(function() { els.toast.classList.remove('show'); }, type === 'announce' ? 3500 : 2500);
     }
 
     // ==================== SPEECH RECOGNITION ====================
-    function setupRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            showToast('Speech recognition not supported', 'error');
-            return false;
-        }
-        state.recognition = new SpeechRecognition();
+    function setupRecog() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { showToast('Speech recognition not supported', 'error'); return false; }
+        state.recognition = new SR();
         state.recognition.continuous = true;
         state.recognition.interimResults = true;
         state.recognition.lang = state.settings.lang;
         state.recognition.maxAlternatives = 3;
-
-        state.recognition.onstart = function() {
-            state.isListening = true;
-            state.consecutiveErrors = 0;
-            updateStatus('listening', 'Listening...');
-            updateMainButton();
-            logVoice('System', 'Microphone active');
+        state.recognition.onstart = () => {
+            state.isListening = true; state.consecutiveErrors = 0;
+            updateStatus('listening', 'Listening...'); updateMainBtn();
+            log('System', 'Microphone active');
         };
-
-        state.recognition.onresult = function(event) {
-            const results = event.results;
-            const lastResult = results[results.length - 1];
-            if (lastResult.isFinal) {
-                const transcript = lastResult[0].transcript.toLowerCase().trim();
-                processCommand(transcript);
-            } else {
-                const interim = lastResult[0].transcript.toLowerCase().trim();
-                if (interim.length > 0) {
-                    updateStatus('listening', 'Hearing: "' + interim + '"');
-                }
-            }
+        state.recognition.onresult = (e) => {
+            const r = e.results[e.results.length-1];
+            if (r.isFinal) processCommand(r[0].transcript.toLowerCase().trim());
+            else if (r[0].transcript) updateStatus('listening', 'Hearing: "'+r[0].transcript+'"');
         };
-
-        state.recognition.onerror = function(event) {
-            const error = event.error;
+        state.recognition.onerror = (e) => {
             state.consecutiveErrors++;
-            if (error === 'no-speech') {
-                logVoice('System', 'No speech detected, restarting...');
-            } else if (error === 'audio-capture') {
-                updateStatus('error', 'No microphone');
-                logVoice('Error', 'No microphone available');
-                showToast('No microphone detected', 'error');
-            } else if (error === 'not-allowed') {
-                updateStatus('error', 'Mic denied');
-                logVoice('Error', 'Microphone permission denied');
-                showToast('Allow microphone access', 'error');
-                stopListening();
-                return;
-            } else if (error === 'network') {
-                updateStatus('error', 'Network error');
-                logVoice('Error', 'Network error');
-            } else {
-                updateStatus('error', 'Error: ' + error);
-                logVoice('Error', error);
-            }
+            if (e.error === 'no-speech') log('System', 'No speech, restarting...');
+            else if (e.error === 'not-allowed') { updateStatus('error', 'Mic denied'); showToast('Allow microphone access', 'error'); stopListening(); return; }
+            else { updateStatus('error', e.error); log('Error', e.error); }
             if (state.settings.autorestart && state.isListening && state.consecutiveErrors < 5) {
-                setTimeout(function() { if (state.isListening) safeStartRecognition(); }, 500);
-            } else if (state.consecutiveErrors >= 5) {
-                updateStatus('error', 'Too many errors');
-                stopListening();
-                showToast('Stopped due to errors', 'error');
-            }
+                setTimeout(() => { if (state.isListening) safeStart(); }, 500);
+            } else if (state.consecutiveErrors >= 5) { updateStatus('error', 'Too many errors'); stopListening(); showToast('Stopped due to errors', 'error'); }
         };
-
-        state.recognition.onend = function() {
-            if (state.isListening && state.settings.autorestart) {
-                setTimeout(function() { safeStartRecognition(); }, 100);
-            }
-        };
-
+        state.recognition.onend = () => { if (state.isListening && state.settings.autorestart) setTimeout(safeStart, 100); };
         return true;
     }
 
-    function safeStartRecognition() {
-        if (!state.recognition) return;
-        try { state.recognition.start(); }
-        catch (e) { if (e.name !== 'InvalidStateError') console.error(e); }
-    }
+    function safeStart() { if (!state.recognition) return; try { state.recognition.start(); } catch(e) { if (e.name !== 'InvalidStateError') console.error(e); } }
 
-    // ==================== DIRECT SCORE PARSING ====================
-    function parseDirectScore(transcript) {
-        const rules = getRules();
-
-        // Tennis-style score patterns
-        if (state.mode === 'tennis') {
-            return parseTennisScore(transcript);
-        }
-
-        // Numeric score patterns for squash/table tennis/custom: "3-2", "11-9", "1-0", "five three"
-        return parseNumericScore(transcript);
-    }
-
-    function parseTennisScore(transcript) {
-        const p1NameLower = state.p1Name.toLowerCase();
-        const p2NameLower = state.p2Name.toLowerCase();
-        const server = state.gameServer;
-        const receiver = server === 1 ? 2 : 1;
-
-        const pointValues = {
-            'love': 0, 'zero': 0, '0': 0,
-            '15': 1, 'fifteen': 1,
-            '30': 2, 'thirty': 2,
-            '40': 3, 'forty': 3,
-            'deuce': 3
-        };
-
-        let clean = transcript.replace(/[\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
-
-        // ===== ASR FIX: Strip trailing punctuation =====
-        const cleanStripped = clean.replace(/[.,;:!?]$/, '');
-
-        // ===== ASR ERROR CORRECTIONS FOR TENNIS =====
-        // Web Speech API merges numbers: "15-15" -> "1515", "15-30" -> "1530"
-        const asrFixes = [
-            { pattern: /^1515$/, fix: '15 15' },
-            { pattern: /^1530$/, fix: '15 30' },
-            { pattern: /^1540$/, fix: '15 40' },
-            { pattern: /^3015$/, fix: '30 15' },
-            { pattern: /^3040$/, fix: '30 40' },
-            { pattern: /^4015$/, fix: '40 15' },
-            { pattern: /^4030$/, fix: '40 30' },
-            { pattern: /^150$/, fix: '15 0' },
-            { pattern: /^300$/, fix: '30 0' },
-            { pattern: /^400$/, fix: '40 0' },
-        ];
-
-        for (let i = 0; i < asrFixes.length; i++) {
-            const fix = asrFixes[i];
-            if (fix.pattern.test(cleanStripped)) {
-                clean = cleanStripped.replace(fix.pattern, fix.fix);
-                logVoice('ASR Fix', '"' + transcript + '" -> "' + clean + '"');
-                break;
-            }
-        }
-
-        // "Deuce" - both at 40
-        if (clean === 'deuce' || clean.includes(' deuce') || clean.includes('deuce ')) {
-            saveToHistory();
-            state.p1.points = 3;
-            state.p2.points = 3;
-            updatePointDisplays();
-            updateServeIndicator();
-            updateUI();
-            announceScore();
-            logVoice('Command', 'Score set to Deuce — heard: "' + transcript + '"');
-            return true;
-        }
-
-        // Extract two values from the transcript
-        let serverVal = null, receiverVal = null;
-        const words = clean.split(' ');
-        for (let i = 0; i < words.length; i++) {
-            const w = words[i].toLowerCase();
-            const val = pointValues[w];
-            if (val !== undefined) {
-                if (serverVal === null) serverVal = val;
-                else if (receiverVal === null) receiverVal = val;
-            }
-        }
-
-        // Regex patterns for "X Y" score statements
-        const tennisPatterns = [
-            /^(love|zero|0)\s+(love|zero|0|15|fifteen|30|thirty|40|forty)$/,
-            /^(15|fifteen)\s+(love|zero|0|15|fifteen|30|thirty|40|forty)$/,
-            /^(30|thirty)\s+(love|zero|0|15|fifteen|30|thirty|40|forty)$/,
-            /^(40|forty)\s+(love|zero|0|15|fifteen|30|thirty|40|forty)$/,
-            /^(love|zero|0|15|fifteen|30|thirty|40|forty)\s+all$/,
-        ];
-
-        for (let pi = 0; pi < tennisPatterns.length; pi++) {
-            const match = clean.match(tennisPatterns[pi]);
-            if (match) {
-                const v1 = pointValues[match[1]];
-                let v2;
-                if (match[0].includes('all')) {
-                    v2 = v1;
-                } else {
-                    v2 = pointValues[match[2]];
-                }
-                if (v1 !== undefined && v2 !== undefined) {
-                    serverVal = v1;
-                    receiverVal = v2;
-                    break;
-                }
-            }
-        }
-
-        // Check for "advantage [name]"
-        if (serverVal === null && receiverVal === null) {
-            if (clean.includes('advantage')) {
-                if (clean.includes(p1NameLower) || clean.includes('one') || clean.includes('player one')) {
-                    saveToHistory();
-                    state.p1.points = 4;
-                    state.p2.points = 3;
-                    updatePointDisplays();
-                    updateServeIndicator();
-                    updateUI();
-                    announceScore();
-                    logVoice('Command', 'Advantage ' + state.p1Name + ' — heard: "' + transcript + '"');
-                    return true;
-                }
-                if (clean.includes(p2NameLower) || clean.includes('two') || clean.includes('player two')) {
-                    saveToHistory();
-                    state.p1.points = 3;
-                    state.p2.points = 4;
-                    updatePointDisplays();
-                    updateServeIndicator();
-                    updateUI();
-                    announceScore();
-                    logVoice('Command', 'Advantage ' + state.p2Name + ' — heard: "' + transcript + '"');
-                    return true;
-                }
-            }
-        }
-
-        // Apply the score: first value = SERVER's score, second = RECEIVER's score
-        if (serverVal !== null && receiverVal !== null) {
-            saveToHistory();
-            if (server === 1) {
-                state.p1.points = serverVal;
-                state.p2.points = receiverVal;
-            } else {
-                state.p1.points = receiverVal;
-                state.p2.points = serverVal;
-            }
-            updatePointDisplays();
-            updateServeIndicator();
-            updateUI();
-            announceScore();
-            const serverName = server === 1 ? state.p1Name : state.p2Name;
-            const scoreText = state.p1.pointsDisplay + '-' + state.p2.pointsDisplay;
-            logVoice('Command', 'Score set to ' + scoreText + ' (server: ' + serverName + ') — heard: "' + transcript + '"');
-            return true;
-        }
-
-        return false;
-    }
-
-    function parseNumericScore(transcript) {
-        let clean = transcript.replace(/[\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
-
-        // ===== ASR ERROR CORRECTIONS =====
-        // Web Speech API often merges numbers: "1-0" -> "10", "15-15" -> "1515"
-        // Strip trailing punctuation that ASR adds
-        const cleanStripped = clean.replace(/[.,;:!?]$/, '');
-
-        const asrFixes = [
-            // "10" at start of score statement likely means "1-0" (especially in squash/tt)
-            { pattern: /^10$/, fix: '1 0' },
-            { pattern: /^10 /, fix: '1 0 ' },
-            { pattern: / 10$/, fix: ' 1 0' },
-            { pattern: / 10 /, fix: ' 1 0 ' },
-            // "1515" -> "15 15" (tennis fifteen all)
-            { pattern: /^1515$/, fix: '15 15' },
-            // "1530" -> "15 30"
-            { pattern: /^1530$/, fix: '15 30' },
-            // "1540" -> "15 40"
-            { pattern: /^1540$/, fix: '15 40' },
-            // "3015" -> "30 15"
-            { pattern: /^3015$/, fix: '30 15' },
-            // "4015" -> "40 15"
-            { pattern: /^4015$/, fix: '40 15' },
-            // "3040" -> "30 40"
-            { pattern: /^3040$/, fix: '30 40' },
-            // "4030" -> "40 30"
-            { pattern: /^4030$/, fix: '40 30' },
-            // "1111" -> "11 11" (table tennis deuce)
-            { pattern: /^1111$/, fix: '11 11' },
-            // "119" -> "11 9"
-            { pattern: /^119$/, fix: '11 9' },
-            // "911" -> "9 11"
-            { pattern: /^911$/, fix: '9 11' },
-            // "1010" -> "10 10"
-            { pattern: /^1010$/, fix: '10 10' },
-            // "1012" -> "10 12"
-            { pattern: /^1012$/, fix: '10 12' },
-            // "1210" -> "12 10"
-            { pattern: /^1210$/, fix: '12 10' },
-        ];
-
-        for (let i = 0; i < asrFixes.length; i++) {
-            const fix = asrFixes[i];
-            if (fix.pattern.test(cleanStripped)) {
-                clean = cleanStripped.replace(fix.pattern, fix.fix);
-                logVoice('ASR Fix', '"' + transcript + '" -> "' + clean + '"');
-                break;
-            }
-        }
-
-        // Word to number mapping
-        const wordNumbers = {
-            'zero': 0, 'love': 0, 'nil': 0, 'oh': 0,
-            'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-            'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-            'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15
-        };
-
-        // Try patterns: "3-2", "11 9", "five three", "1 0"
-        const words = clean.split(' ');
-        let serverVal = null, receiverVal = null;
-
-        for (let i = 0; i < words.length; i++) {
-            const w = words[i].toLowerCase();
-            // Try as digit first
-            const num = parseInt(w);
-            if (!isNaN(num) && num >= 0 && num <= 99) {
-                if (serverVal === null) serverVal = num;
-                else if (receiverVal === null) receiverVal = num;
-            } else {
-                // Try as word
-                const wordVal = wordNumbers[w];
-                if (wordVal !== undefined) {
-                    if (serverVal === null) serverVal = wordVal;
-                    else if (receiverVal === null) receiverVal = wordVal;
-                }
-            }
-        }
-
-        if (serverVal !== null && receiverVal !== null) {
-            saveToHistory();
-            const currentServer = state.servePlayer;
-            // In squash/table tennis: first number = SERVER's score, second = RECEIVER's score
-            if (currentServer === 1) {
-                state.p1.points = serverVal;
-                state.p2.points = receiverVal;
-            } else {
-                state.p1.points = receiverVal;
-                state.p2.points = serverVal;
-            }
-            updatePointDisplays();
-            updateServeIndicator();
-            updateUI();
-            const serverName = currentServer === 1 ? state.p1Name : state.p2Name;
-            const scoreText = state.p1.pointsDisplay + '-' + state.p2.pointsDisplay;
-            logVoice('Command', 'Score set to ' + scoreText + ' (server: ' + serverName + ') — heard: "' + transcript + '"');
-            return true;
-        }
-
-        return false;
-    }
-
-    // ==================== COMMAND PROCESSING ====================
-    function processCommand(transcript) {
-        const now = Date.now();
-        if (now - state.lastCommandTime < 1200) {
-            logVoice('Ignored', '"' + transcript + '" (too fast)');
-            return;
-        }
-
-        const p1NameLower = state.p1Name.toLowerCase();
-        const p2NameLower = state.p2Name.toLowerCase();
-        const rules = getRules();
-        let matched = false;
-        let action = '';
-
-        // SCORE ANNOUNCEMENT
-        if (containsAny(transcript, ['what is the score', 'what\'s the score', 'current score', 'score please', 'tell me the score', 'read score', 'announce score'])) {
-            announceScore();
-            action = 'Score announced';
-            matched = true;
-        }
-        // DIRECT SCORE STATEMENTS - user says the score directly
-        else if (parseDirectScore(transcript)) {
-            matched = true;
-            action = 'Score set directly';
-        }
-        // POINT commands
-        else if (containsAny(transcript, ['point one', 'score one', 'player one', 'p1 point', 'point ' + p1NameLower, 'score ' + p1NameLower, 'team one', 'home', 'point to one'])) {
-            adjustScore(1, 1);
-            action = 'Point to ' + state.p1Name;
-            matched = true;
-        }
-        else if (containsAny(transcript, ['point two', 'score two', 'player two', 'p2 point', 'point ' + p2NameLower, 'score ' + p2NameLower, 'team two', 'away', 'point to two'])) {
-            adjustScore(2, 1);
-            action = 'Point to ' + state.p2Name;
-            matched = true;
-        }
-        // GAME award
-        else if (containsAny(transcript, ['game one', 'game player one', 'game ' + p1NameLower, 'award game one'])) {
-            saveToHistory();
-            awardGame(1, rules);
-            action = 'Game awarded to ' + state.p1Name;
-            matched = true;
-        }
-        else if (containsAny(transcript, ['game two', 'game player two', 'game ' + p2NameLower, 'award game two'])) {
-            saveToHistory();
-            awardGame(2, rules);
-            action = 'Game awarded to ' + state.p2Name;
-            matched = true;
-        }
-        // SET award
-        else if (containsAny(transcript, ['set one', 'set player one', 'set ' + p1NameLower])) {
-            saveToHistory();
-            state.p1.games = rules.gamesPerSet;
-            awardSet(1, rules);
-            action = 'Set awarded to ' + state.p1Name;
-            matched = true;
-        }
-        else if (containsAny(transcript, ['set two', 'set player two', 'set ' + p2NameLower])) {
-            saveToHistory();
-            state.p2.games = rules.gamesPerSet;
-            awardSet(2, rules);
-            action = 'Set awarded to ' + state.p2Name;
-            matched = true;
-        }
-        // MINUS
-        else if (containsAny(transcript, ['minus one', 'remove one', 'take one', 'minus ' + p1NameLower, 'remove ' + p1NameLower])) {
-            adjustScore(1, -1);
-            action = 'Removed point from ' + state.p1Name;
-            matched = true;
-        }
-        else if (containsAny(transcript, ['minus two', 'remove two', 'take two', 'minus ' + p2NameLower, 'remove ' + p2NameLower])) {
-            adjustScore(2, -1);
-            action = 'Removed point from ' + state.p2Name;
-            matched = true;
-        }
-        // RESET / NEW
-        else if (containsAny(transcript, ['reset match', 'start over', 'new match'])) {
-            resetScores(true);
-            action = 'Match reset';
-            matched = true;
-        }
-        else if (containsAny(transcript, ['new game', 'next game', 'game over', 'end game'])) {
-            newGame();
-            action = 'New game started';
-            matched = true;
-        }
-        else if (containsAny(transcript, ['new set', 'next set', 'set over', 'end set'])) {
-            newSet();
-            action = 'New set started';
-            matched = true;
-        }
-        // SERVE CHANGE commands
-        else if (containsAny(transcript, ['change serve', 'switch serve', 'your serve', 'my serve', 'serve change'])) {
-            saveToHistory();
-            if (state.mode === 'tennis') {
-                // Tennis: change who serves the NEXT game (not this one)
-                state.gameServer = state.gameServer === 1 ? 2 : 1;
-                state.servePlayer = state.gameServer;
-                const serverName = state.gameServer === 1 ? state.p1Name : state.p2Name;
-                els.matchInfoText.innerHTML = '<span class="announcer">Next game: ' + serverName + ' will serve</span>';
-                logVoice('Action', 'Next game server changed to ' + serverName);
-                if (state.settings.tts) speak('Next game. ' + serverName + ' to serve.');
-            } else {
-                // Squash/Table Tennis/Custom: change current server
-                state.servePlayer = state.servePlayer === 1 ? 2 : 1;
-                state.gameServer = state.servePlayer; // Sync for consistency
-                const serverName = state.servePlayer === 1 ? state.p1Name : state.p2Name;
-                els.matchInfoText.innerHTML = '<span class="announcer">' + serverName + ' now serving</span>';
-                logVoice('Action', 'Serve changed to ' + serverName);
-                if (state.settings.tts) speak(serverName + ' now serving');
-            }
-            matched = true;
-        }
-        // SWAP
-        else if (containsAny(transcript, ['swap', 'switch', 'change sides', 'rotate'])) {
-            swapPlayers();
-            action = 'Players swapped';
-            matched = true;
-        }
-        // UNDO
-        else if (containsAny(transcript, ['undo', 'go back', 'reverse', 'oops'])) {
-            undoLast();
-            action = 'Last action undone';
-            matched = true;
-        }
-        // STOP
-        else if (containsAny(transcript, ['stop', 'pause', 'halt', 'break'])) {
-            stopListening();
-            action = 'Listening paused';
-            matched = true;
-        }
-
-        if (matched) {
-            state.lastCommandTime = now;
-            state.consecutiveErrors = 0;
-            logVoice('Command', action + ' — heard: "' + transcript + '"');
-            if (state.settings.tts && !state.settings.announce) speak(action);
-        } else {
-            logVoice('Heard', '"' + transcript + '" (no match)');
-        }
-    }
-
-    function containsAny(text, phrases) {
-        for (let i = 0; i < phrases.length; i++) {
-            if (text.indexOf(phrases[i]) !== -1) return true;
-        }
-        return false;
-    }
-
-    // ==================== LISTENING CONTROL ====================
     async function toggleListening() {
         if (state.isListening) stopListening();
-        else await startListening();
-    }
-
-    async function startListening() {
-        if (!state.recognition) {
-            if (!setupRecognition()) return;
-        }
-        try {
-            state.recognition.lang = state.settings.lang;
-            state.recognition.start();
-            if (state.settings.wakelock) await acquireWakeLock();
-        } catch (e) {
-            showToast('Could not start: ' + e.message, 'error');
+        else {
+            if (!state.recognition) { if (!setupRecog()) return; }
+            try { state.recognition.lang = state.settings.lang; state.recognition.start(); if (state.settings.wakelock) await acquireWakeLock(); }
+            catch(e) { showToast('Could not start: '+e.message, 'error'); }
         }
     }
 
     function stopListening() {
-        state.isListening = false;
-        state.consecutiveErrors = 0;
-        if (state.recognition) {
-            try { state.recognition.stop(); } catch (e) {}
-        }
+        state.isListening = false; state.consecutiveErrors = 0;
+        if (state.recognition) try { state.recognition.stop(); } catch(e){}
         releaseWakeLock();
-        updateStatus('idle', 'Idle');
-        updateMainButton();
-        logVoice('System', 'Stopped listening');
+        updateStatus('idle', 'Idle'); updateMainBtn();
+        log('System', 'Stopped listening');
     }
 
-    // ==================== WAKE LOCK ====================
     async function acquireWakeLock() {
         if ('wakeLock' in navigator) {
-            try {
-                state.wakeLock = await navigator.wakeLock.request('screen');
-                state.wakeLock.addEventListener('release', function() {
-                    logVoice('System', 'Wake lock released');
-                });
-                logVoice('System', 'Screen wake lock active');
-                return;
-            } catch (err) {
-                console.log('Wake Lock API failed, using fallback');
-            }
+            try { state.wakeLock = await navigator.wakeLock.request('screen'); log('System', 'Wake lock active'); return; } catch(err) {}
         }
-        if (els.noSleepVideo) {
-            try {
-                await els.noSleepVideo.play();
-                state.noSleepVideo = els.noSleepVideo;
-                logVoice('System', 'Screen stay-awake fallback active');
-            } catch (e) {
-                console.error('NoSleep fallback failed:', e);
-            }
-        }
+        try { await els.noSleep.play(); log('System', 'Stay-awake fallback'); } catch(e) {}
     }
-
     function releaseWakeLock() {
-        if (state.wakeLock) {
-            state.wakeLock.release().catch(function() {});
-            state.wakeLock = null;
-        }
-        if (state.noSleepVideo) {
-            state.noSleepVideo.pause();
-            state.noSleepVideo = null;
-        }
+        if (state.wakeLock) { state.wakeLock.release().catch(()=>{}); state.wakeLock = null; }
+        try { els.noSleep.pause(); } catch(e) {}
     }
 
-    function setupVisibilityHandler() {
-        document.addEventListener('visibilitychange', async function() {
-            if (document.visibilityState === 'visible' && state.isListening && state.settings.wakelock) {
-                await acquireWakeLock();
-            }
-        });
-    }
+    function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; u.pitch = 1; window.speechSynthesis.speak(u); }
 
-    // ==================== TTS ====================
-    function speak(text) {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.1;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-        window.speechSynthesis.speak(utterance);
-    }
+    function updateStatus(type, text) { els.status.className = 'status ' + type; els.status.textContent = text; }
+    function updateMainBtn() { if (state.isListening) { els.mainBtn.className='main-btn stop'; els.btnIcon.textContent='⏹'; els.btnText.textContent='Stop Umpire'; } else { els.mainBtn.className='main-btn start'; els.btnIcon.textContent='▶'; els.btnText.textContent='Start Umpire'; } }
+    function log(type, msg) { const time = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); const entry = document.createElement('div'); entry.className='log-entry'; let cls=''; if (type==='Error') cls='error'; else if (type==='Command') cls='log-cmd'; else if (type==='Set'||type==='Match') cls='log-ann'; entry.innerHTML='<span class="log-time">'+time+'</span><span class="'+cls+'">'+type+':</span> '+msg; els.log.insertBefore(entry, els.log.firstChild); while (els.log.children.length>20) els.log.removeChild(els.log.lastChild); }
+    function showToast(msg, type) { els.toast.textContent = msg; els.toast.className = 'toast show ' + (type||''); setTimeout(() => els.toast.classList.remove('show'), type==='announce'?3500:2500); }
 
     // ==================== SETTINGS ====================
-    function openSettings() {
-        document.getElementById('settings-panel').classList.add('open');
-        document.getElementById('overlay').classList.add('visible');
-    }
+    function openSettings() { document.getElementById('settings').classList.add('open'); document.getElementById('overlay').classList.add('visible'); }
+    function closeSettings() { document.getElementById('settings').classList.remove('open'); document.getElementById('overlay').classList.remove('visible'); saveSettings(); }
+    function toggle(key) { state.settings[key] = !state.settings[key]; document.getElementById('tog-'+key.substring(0,4)).classList.toggle('on', state.settings[key]); if (key==='wakelock' && state.isListening) { if (state.settings.wakelock) acquireWakeLock(); else releaseWakeLock(); } saveSettings(); }
+    function setLang(lang) { state.settings.lang = lang; if (state.recognition) { state.recognition.lang = lang; if (state.isListening) { stopListening(); setTimeout(toggleListening, 300); } } saveSettings(); }
+    function saveSettings() { try { localStorage.setItem('vu_settings', JSON.stringify(state.settings)); localStorage.setItem('vu_mode', state.mode); } catch(e){} }
+    function loadSettings() { try { const s = localStorage.getItem('vu_settings'); if (s) Object.assign(state.settings, JSON.parse(s)); const m = localStorage.getItem('vu_mode'); if (m && MODES[m]) state.mode = m; } catch(e){} document.getElementById('tog-auto').classList.toggle('on', state.settings.autorestart); document.getElementById('tog-tts').classList.toggle('on', state.settings.tts); document.getElementById('tog-ann').classList.toggle('on', state.settings.announce); document.getElementById('lang-sel').value = state.settings.lang; }
 
-    function closeSettings() {
-        document.getElementById('settings-panel').classList.remove('open');
-        document.getElementById('overlay').classList.remove('visible');
-        saveSettings();
+    function setupInstall() {
+        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-banner').classList.add('show'); });
+        window.addEventListener('appinstalled', () => { deferredPrompt = null; document.getElementById('install-banner').classList.remove('show'); showToast('Voice Umpire installed!', 'success'); });
     }
+    async function installPWA() { if (!deferredPrompt) return; deferredPrompt.prompt(); const r = await deferredPrompt.userChoice; if (r.outcome === 'accepted') document.getElementById('install-banner').classList.remove('show'); deferredPrompt = null; }
 
-    function toggleSetting(key) {
-        state.settings[key] = !state.settings[key];
-        const toggle = document.getElementById('toggle-' + key);
-        toggle.classList.toggle('active', state.settings[key]);
-        if (key === 'wakelock' && state.isListening) {
-            if (state.settings.wakelock) acquireWakeLock();
-            else releaseWakeLock();
-        }
-        if (key === 'serve') updateServeIndicator();
-        saveSettings();
-    }
-
-    function changeLanguage(lang) {
-        state.settings.lang = lang;
-        if (state.recognition) {
-            state.recognition.lang = lang;
-            if (state.isListening) {
-                stopListening();
-                setTimeout(startListening, 300);
-            }
-        }
-        saveSettings();
-    }
-
-    function saveSettings() {
-        try {
-            localStorage.setItem('voiceUmpireSettings', JSON.stringify(state.settings));
-            localStorage.setItem('voiceUmpireMode', state.mode);
-        } catch (e) {}
-    }
-
-    function loadSettings() {
-        try {
-            const saved = localStorage.getItem('voiceUmpireSettings');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                Object.keys(parsed).forEach(function(key) {
-                    if (state.settings.hasOwnProperty(key)) state.settings[key] = parsed[key];
-                });
-            }
-            const savedMode = localStorage.getItem('voiceUmpireMode');
-            if (savedMode && SCORING_RULES[savedMode]) state.mode = savedMode;
-        } catch (e) {}
-        document.getElementById('toggle-autorestart').classList.toggle('active', state.settings.autorestart);
-        document.getElementById('toggle-tts').classList.toggle('active', state.settings.tts);
-        document.getElementById('toggle-announce').classList.toggle('active', state.settings.announce);
-        document.getElementById('toggle-wakelock').classList.toggle('active', state.settings.wakelock);
-        document.getElementById('toggle-serve').classList.toggle('active', state.settings.serve);
-        document.getElementById('lang-select').value = state.settings.lang;
-    }
-
-    // ==================== PWA INSTALL ====================
-    function setupInstallPrompt() {
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-banner').classList.add('show');
-        });
-        window.addEventListener('appinstalled', function() {
-            deferredPrompt = null;
-            document.getElementById('install-banner').classList.remove('show');
-            showToast('Voice Umpire installed!', 'success');
-        });
-    }
-
-    async function installPWA() {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const result = await deferredPrompt.userChoice;
-        if (result.outcome === 'accepted') {
-            document.getElementById('install-banner').classList.remove('show');
-        }
-        deferredPrompt = null;
-    }
-
-    // ==================== SERVICE WORKER ====================
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(function(reg) { console.log('SW registered'); })
-            .catch(function(err) { console.log('SW registration failed'); });
-    }
-
-    // Start
     init();
     </script>
 </body>

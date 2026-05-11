@@ -1,7 +1,7 @@
 {
   "name": "Voice Umpire",
   "short_name": "Umpire",
-  "description": "Hands-free voice-controlled sports scoreboard with tennis, squash, table tennis and custom scoring.",
+  "description": "Hands-free voice-controlled sports scoreboard with set-level scoring for tennis, table tennis and custom rules.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f23",
