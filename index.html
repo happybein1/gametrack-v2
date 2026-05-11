@@ -530,7 +530,7 @@
     <div class="header">
         <h1>Voice Umpire</h1>
         <div style="display:flex;align-items:center;gap:8px;">
-            <span id="version-badge" style="font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;">v2.2</span>
+            <span id="version-badge" style="font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;">v2.3</span>
             <div class="status-pill idle" id="status-pill">Idle</div>
         </div>
     </div>
@@ -648,7 +648,7 @@
             <div class="setting-group">
                 <h3>About</h3>
                 <p style="color: var(--text-muted); font-size: 12px; line-height: 1.6;">
-                    Voice Umpire <strong style="color:var(--accent-primary);">v2.2</strong> (build 2026-05-11)<br>
+                    Voice Umpire <strong style="color:var(--accent-primary);">v2.3</strong> (build 2026-05-11)<br>
                     Tennis, Squash, Table Tennis & Custom scoring.<br>
                     Works offline as a PWA. Requires microphone permission.
                 </p>
@@ -780,8 +780,8 @@
     };
 
     // ==================== VERSION ====================
-    const APP_VERSION = '2.2';
-    const APP_BUILD = '2026-05-11-2';
+    const APP_VERSION = '2.3';
+    const APP_BUILD = '2026-05-11-3';
 
     // ==================== STATE ====================
     let state = {
@@ -1413,22 +1413,47 @@
     function parseTennisScore(transcript) {
         const p1NameLower = state.p1Name.toLowerCase();
         const p2NameLower = state.p2Name.toLowerCase();
+        const server = state.gameServer;
+        const receiver = server === 1 ? 2 : 1;
 
-        // Build regex patterns for tennis scores
-        // Patterns: "15-love", "15-0", "30-15", "40-30", "deuce", "15 all", "30 all"
         const pointValues = {
             'love': 0, 'zero': 0, '0': 0,
             '15': 1, 'fifteen': 1,
             '30': 2, 'thirty': 2,
             '40': 3, 'forty': 3,
-            'deuce': 3  // both at 40
+            'deuce': 3
         };
 
-        // Try to match "X-Y" or "X to Y" or "X love" patterns
-        // Clean transcript for matching
-        const clean = transcript.replace(/[\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
+        let clean = transcript.replace(/[\-–—]/g, ' ').replace(/\s+/g, ' ').trim();
 
-        // Check for "deuce" explicitly
+        // ===== ASR FIX: Strip trailing punctuation =====
+        const cleanStripped = clean.replace(/[.,;:!?]$/, '');
+
+        // ===== ASR ERROR CORRECTIONS FOR TENNIS =====
+        // Web Speech API merges numbers: "15-15" -> "1515", "15-30" -> "1530"
+        const asrFixes = [
+            { pattern: /^1515$/, fix: '15 15' },
+            { pattern: /^1530$/, fix: '15 30' },
+            { pattern: /^1540$/, fix: '15 40' },
+            { pattern: /^3015$/, fix: '30 15' },
+            { pattern: /^3040$/, fix: '30 40' },
+            { pattern: /^4015$/, fix: '40 15' },
+            { pattern: /^4030$/, fix: '40 30' },
+            { pattern: /^150$/, fix: '15 0' },
+            { pattern: /^300$/, fix: '30 0' },
+            { pattern: /^400$/, fix: '40 0' },
+        ];
+
+        for (let i = 0; i < asrFixes.length; i++) {
+            const fix = asrFixes[i];
+            if (fix.pattern.test(cleanStripped)) {
+                clean = cleanStripped.replace(fix.pattern, fix.fix);
+                logVoice('ASR Fix', '"' + transcript + '" -> "' + clean + '"');
+                break;
+            }
+        }
+
+        // "Deuce" - both at 40
         if (clean === 'deuce' || clean.includes(' deuce') || clean.includes('deuce ')) {
             saveToHistory();
             state.p1.points = 3;
@@ -1441,20 +1466,19 @@
             return true;
         }
 
-        // Try to extract two point values from the transcript
+        // Extract two values from the transcript
+        let serverVal = null, receiverVal = null;
         const words = clean.split(' ');
-        let p1Val = null, p2Val = null;
-
         for (let i = 0; i < words.length; i++) {
             const w = words[i].toLowerCase();
             const val = pointValues[w];
             if (val !== undefined) {
-                if (p1Val === null) p1Val = val;
-                else if (p2Val === null) p2Val = val;
+                if (serverVal === null) serverVal = val;
+                else if (receiverVal === null) receiverVal = val;
             }
         }
 
-        // Also try regex for "15 love", "15-love", "15 0", etc.
+        // Regex patterns for "X Y" score statements
         const tennisPatterns = [
             /^(love|zero|0)\s+(love|zero|0|15|fifteen|30|thirty|40|forty)$/,
             /^(15|fifteen)\s+(love|zero|0|15|fifteen|30|thirty|40|forty)$/,
@@ -1469,20 +1493,20 @@
                 const v1 = pointValues[match[1]];
                 let v2;
                 if (match[0].includes('all')) {
-                    v2 = v1; // "15 all" = 15-15
+                    v2 = v1;
                 } else {
                     v2 = pointValues[match[2]];
                 }
                 if (v1 !== undefined && v2 !== undefined) {
-                    p1Val = v1;
-                    p2Val = v2;
+                    serverVal = v1;
+                    receiverVal = v2;
                     break;
                 }
             }
         }
 
         // Check for "advantage [name]"
-        if (p1Val === null && p2Val === null) {
+        if (serverVal === null && receiverVal === null) {
             if (clean.includes('advantage')) {
                 if (clean.includes(p1NameLower) || clean.includes('one') || clean.includes('player one')) {
                     saveToHistory();
@@ -1509,16 +1533,23 @@
             }
         }
 
-        if (p1Val !== null && p2Val !== null) {
+        // Apply the score: first value = SERVER's score, second = RECEIVER's score
+        if (serverVal !== null && receiverVal !== null) {
             saveToHistory();
-            state.p1.points = p1Val;
-            state.p2.points = p2Val;
+            if (server === 1) {
+                state.p1.points = serverVal;
+                state.p2.points = receiverVal;
+            } else {
+                state.p1.points = receiverVal;
+                state.p2.points = serverVal;
+            }
             updatePointDisplays();
             updateServeIndicator();
             updateUI();
             announceScore();
+            const serverName = server === 1 ? state.p1Name : state.p2Name;
             const scoreText = state.p1.pointsDisplay + '-' + state.p2.pointsDisplay;
-            logVoice('Command', 'Score set to ' + scoreText + ' — heard: "' + transcript + '"');
+            logVoice('Command', 'Score set to ' + scoreText + ' (server: ' + serverName + ') — heard: "' + transcript + '"');
             return true;
         }
 
