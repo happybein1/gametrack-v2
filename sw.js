@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voice-umpire-v2-8-20260511-8';
+const CACHE_NAME = 'gametrack-v1-0';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

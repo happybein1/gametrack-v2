@@ -3,411 +3,795 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f0f23">
-    <title>Voice Umpire v2.8</title>
+    <meta name="theme-color" content="#050a08">
+    <title>Gametrack</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0f0f23; --bg2: #1a1a2e; --card: #16213e; --accent: #00d4aa;
-            --warn: #ffd93d; --danger: #ff6b6b; --info: #74b9ff; --text: #fff; --muted: #a0a0b0;
-            --border: #2a2a40;
+            --bg:       #050a08;
+            --bg2:      #0b1410;
+            --surface:  #111c17;
+            --line:     #1e3028;
+            --green:    #3dba7a;
+            --blue:     #3d8eba;
+            --green-dim: rgba(61,186,122,0.12);
+            --blue-dim:  rgba(61,142,186,0.12);
+            --green-glow: rgba(61,186,122,0.25);
+            --blue-glow:  rgba(61,142,186,0.25);
+            --text:     #e8f5ee;
+            --muted:    #4a7060;
+            --danger:   #e05555;
+            --p1:       #3dba7a;
+            --p2:       #3d8eba;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
-        .header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: var(--bg2); border-bottom: 1px solid var(--border); }
-        .header h1 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
-        .version { font-size: 11px; color: var(--accent); font-weight: 700; background: rgba(0,212,170,0.1); padding: 2px 8px; border-radius: 12px; }
-        .status { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-        .status.idle { background: #666680; color: var(--bg); }
-        .status.listening { background: var(--accent); color: var(--bg); animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        .lang-bar { display: flex; gap: 8px; padding: 8px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; }
-        .lang-bar::-webkit-scrollbar { display: none; }
-        .lang-btn { padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        .lang-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-        .scoreboard { flex: 0 0 auto; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 16px; }
-        .player-card { flex: 1; max-width: 300px; background: var(--card); border-radius: 20px; padding: 20px 16px; text-align: center; border: 2px solid var(--border); }
-        .player-card.active { border-color: var(--accent); box-shadow: 0 0 25px rgba(0,212,170,0.15); }
-        .player-name { background: transparent; border: none; color: var(--muted); text-align: center; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; width: 100%; font-weight: 600; outline: none; }
-        .player-name:focus { color: var(--text); border-bottom: 1px dashed var(--accent); }
-        .big-number { font-size: clamp(56px, 13vw, 90px); font-weight: 800; line-height: 1; margin: 4px 0; }
-        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
-        .btn-row { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
-        .btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .btn:active { transform: scale(0.92); background: var(--accent); border-color: var(--accent); }
-        .btn.minus:active { background: var(--danger); border-color: var(--danger); }
-        .controls { background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
-        .main-btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .main-btn.start { background: linear-gradient(135deg, var(--accent), #00b894); color: var(--bg); }
-        .main-btn.stop { background: linear-gradient(135deg, var(--danger), #ee5a5a); color: #fff; }
-        .secondary { display: flex; gap: 8px; }
-        .sec-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
-        .sec-btn:active { background: var(--border); color: var(--text); }
-        .history { flex: 1; background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; overflow-y: auto; min-height: 100px; }
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .history-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-        .history-actions { display: flex; gap: 6px; }
-        .history-actions button { padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; }
-        .history-actions button:active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-        .entry { padding: 8px 12px; background: var(--card); border-radius: 10px; margin-bottom: 6px; font-size: 13px; }
-        .entry-time { color: #666680; font-size: 10px; margin-right: 6px; }
-        .entry-voice { color: var(--accent); font-weight: 600; }
-        .entry-manual { color: var(--warn); font-weight: 600; }
-        .entry-ai { color: var(--info); font-weight: 600; }
-        .ai-panel { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
-        .ai-panel h4 { color: var(--info); font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .ai-panel pre { white-space: pre-wrap; font-size: 12px; line-height: 1.5; color: var(--text); font-family: inherit; }
-        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); color: var(--text); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid var(--border); opacity: 0; transition: all 0.3s; z-index: 2000; pointer-events: none; max-width: 90vw; }
+
+        body {
+            font-family: 'DM Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* subtle grid texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(61,186,122,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(61,186,122,0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header, .set-headers, .players, .action-bar, footer { position: relative; z-index: 1; }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--bg2);
+        }
+
+        .logo-wordmark {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+        .logo-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            letter-spacing: 3px;
+            background: linear-gradient(120deg, var(--green), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .set-label {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+        .reset-btn {
+            background: none;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 1px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .reset-btn:hover, .reset-btn:active { border-color: var(--danger); color: var(--danger); }
+
+        /* ── Column headers ── */
+        .set-headers {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid var(--line);
+            background: var(--bg2);
+        }
+        .set-header-spacer {
+            width: 128px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--line);
+        }
+        .set-header-labels {
+            flex: 1;
+            display: flex;
+            padding: 6px 12px;
+            gap: 6px;
+        }
+        .set-col-label {
+            flex: 1;
+            text-align: center;
+            font-size: 9px;
+            color: var(--muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ── Players ── */
+        .players {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 14px 14px;
+            gap: 10px;
+            width: 128px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--line);
+        }
+
+        .player-name-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid transparent;
+            color: var(--text);
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            width: 100%;
+            outline: none;
+            letter-spacing: 0.5px;
+            padding-bottom: 2px;
+            transition: border-color 0.2s;
+        }
+        .player-name-input::placeholder { color: var(--muted); }
+        .p1-row .player-name-input:focus { border-bottom-color: var(--green); }
+        .p2-row .player-name-input:focus { border-bottom-color: var(--blue); }
+
+        .score-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sc-btn {
+            width: 26px; height: 26px;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.1s;
+            flex-shrink: 0;
+        }
+        .sc-btn:active { transform: scale(0.88); }
+        .p1-row .sc-btn.plus:active  { background: var(--green); border-color: var(--green); color: #000; }
+        .p2-row .sc-btn.plus:active  { background: var(--blue);  border-color: var(--blue);  color: #000; }
+        .sc-btn.minus:active { background: var(--danger); border-color: var(--danger); }
+
+        .total-score-wrap { text-align: center; }
+        .total-games {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px;
+            line-height: 1;
+        }
+        .p1-row .total-games { color: var(--green); }
+        .p2-row .total-games { color: var(--blue); }
+        .games-label {
+            font-size: 8px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ── Set boxes ── */
+        .sets-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 12px;
+        }
+        .set-boxes {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+        }
+        .set-box {
+            flex: 1;
+            aspect-ratio: 1;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .set-box:active { transform: scale(0.91); }
+        .set-score {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(16px, 4vw, 26px);
+            color: var(--muted);
+            transition: color 0.2s;
+        }
+
+        /* P1 states */
+        .p1-row .set-box.has-score { border-color: rgba(61,186,122,0.3); }
+        .p1-row .set-box.has-score .set-score { color: var(--green); }
+        .p1-row .set-box.won {
+            background: var(--green-dim);
+            border-color: var(--green);
+            box-shadow: 0 0 12px var(--green-glow);
+        }
+        .p1-row .set-box.won::after {
+            content: '●';
+            position: absolute;
+            top: 4px; right: 5px;
+            font-size: 5px;
+            color: var(--green);
+        }
+        .p1-row .set-box.current { border-color: rgba(61,186,122,0.5); border-style: dashed; }
+
+        /* P2 states */
+        .p2-row .set-box.has-score { border-color: rgba(61,142,186,0.3); }
+        .p2-row .set-box.has-score .set-score { color: var(--blue); }
+        .p2-row .set-box.won {
+            background: var(--blue-dim);
+            border-color: var(--blue);
+            box-shadow: 0 0 12px var(--blue-glow);
+        }
+        .p2-row .set-box.won::after {
+            content: '●';
+            position: absolute;
+            top: 4px; right: 5px;
+            font-size: 5px;
+            color: var(--blue);
+        }
+        .p2-row .set-box.current { border-color: rgba(61,142,186,0.5); border-style: dashed; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: var(--bg2);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 26px 22px;
+            width: min(310px, 90vw);
+            transform: translateY(12px);
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .modal::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--green), var(--blue));
+        }
+        .modal-overlay.open .modal { transform: translateY(0); }
+        .modal h3 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            background: linear-gradient(120deg, var(--green), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .modal-scores {
+            display: flex; gap: 16px; margin-bottom: 18px;
+            align-items: center;
+        }
+        .modal-player { flex: 1; text-align: center; }
+        .modal-player-name {
+            font-size: 10px; color: var(--muted);
+            letter-spacing: 1px; margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .modal-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 54px; line-height: 1;
+        }
+        .modal-p1 .modal-num { color: var(--green); }
+        .modal-p2 .modal-num { color: var(--blue); }
+        .modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+        .modal-sc {
+            width: 38px; height: 38px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 20px; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-sc.plus:active  { background: var(--green); color: #000; }
+        .modal-sc.minus:active { background: var(--danger); }
+        .modal-divider { color: var(--muted); font-size: 20px; padding-top: 10px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .modal-save {
+            flex: 1; padding: 12px;
+            background: linear-gradient(120deg, var(--green), var(--blue));
+            color: #000;
+            border: none; border-radius: 8px;
+            font-family: 'DM Mono', monospace;
+            font-size: 12px; font-weight: 500;
+            cursor: pointer; letter-spacing: 1px;
+        }
+        .modal-cancel {
+            flex: 1; padding: 12px;
+            background: none; color: var(--muted);
+            border: 1px solid var(--line); border-radius: 8px;
+            font-family: 'DM Mono', monospace;
+            font-size: 12px; cursor: pointer;
+        }
+
+        /* ── Action bar ── */
+        .action-bar {
+            display: flex; gap: 8px;
+            padding: 10px 14px;
+            border-top: 1px solid var(--line);
+            background: var(--bg2);
+        }
+        .act-btn {
+            flex: 1; padding: 10px 6px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            border-radius: 8px;
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .act-btn:active { background: var(--line); color: var(--text); }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 72px; left: 50%;
+            transform: translateX(-50%) translateY(6px);
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--line);
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            opacity: 0; pointer-events: none;
+            transition: all 0.25s;
+            z-index: 999;
+            white-space: nowrap;
+        }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .install-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: var(--bg); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 3000; transform: translateY(100%); transition: transform 0.3s; }
-        .install-banner.show { transform: translateY(0); }
-        .install-banner button { background: var(--bg); color: var(--accent); border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
-        #no-sleep { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+        /* ── Footer ── */
+        footer {
+            padding: 10px 20px;
+            border-top: 1px solid var(--line);
+            background: var(--bg2);
+            display: flex;
+            justify-content: center;
+        }
+        .footer-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: color 0.2s;
+            padding: 4px 0;
+        }
+        .footer-link:hover { color: var(--green); }
+        .footer-link svg { transition: filter 0.2s; }
+        .footer-link:hover svg { filter: drop-shadow(0 0 4px var(--green)); }
+
+        .undo-hint {
+            font-size: 9px;
+            color: var(--muted);
+            letter-spacing: 1px;
+            text-align: center;
+            padding: 4px 0 2px;
+            opacity: 0;
+            transition: opacity 0.4s;
+            position: relative; z-index: 1;
+        }
+        .undo-hint.show { opacity: 1; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🎙️ Voice Umpire <span class="version">v2.8</span></h1>
-        <div class="status idle" id="status">Idle</div>
+
+<header>
+    <div class="logo-wordmark">
+        <!-- Inline logo SVG -->
+        <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Big blue H outline -->
+            <rect x="12" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
+            <rect x="76" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
+            <rect x="18" y="42" width="64" height="12" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
+            <!-- Small green H inside -->
+            <rect x="33" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
+            <rect x="59" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
+            <rect x="37" y="66" width="26" height="8" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
+            <!-- Green circuit dot top-left -->
+            <line x1="5" y1="5" x2="5" y2="30" stroke="#3dba7a" stroke-width="3"/>
+            <circle cx="5" cy="5" r="5" fill="none" stroke="#3dba7a" stroke-width="3"/>
+            <circle cx="5" cy="5" r="2" fill="white"/>
+            <!-- Blue circuit dot bottom-left -->
+            <line x1="18" y1="90" x2="18" y2="72" stroke="#3dba7a" stroke-width="3"/>
+            <circle cx="18" cy="90" r="6" fill="none" stroke="#3d8eba" stroke-width="3.5"/>
+            <circle cx="18" cy="90" r="2.5" fill="white"/>
+            <!-- Green circuit dot middle-right -->
+            <line x1="82" y1="28" x2="82" y2="50" stroke="#3dba7a" stroke-width="3"/>
+            <circle cx="82" cy="28" r="5" fill="none" stroke="#3dba7a" stroke-width="3"/>
+            <circle cx="82" cy="28" r="2" fill="white"/>
+            <!-- Blue circuit dot bottom-right -->
+            <line x1="95" y1="95" x2="95" y2="65" stroke="#3dba7a" stroke-width="3"/>
+            <circle cx="95" cy="95" r="5" fill="none" stroke="#3d8eba" stroke-width="3.5"/>
+            <circle cx="95" cy="95" r="2" fill="white"/>
+        </svg>
+        <span class="logo-text">Gametrack</span>
     </div>
-    <div class="lang-bar" id="lang-bar">
-        <button class="lang-btn active" data-lang="en-US" onclick="setLang('en-US')">🇺🇸 EN</button>
-        <button class="lang-btn" data-lang="es-ES" onclick="setLang('es-ES')">🇪🇸 ES</button>
-        <button class="lang-btn" data-lang="fr-FR" onclick="setLang('fr-FR')">🇫🇷 FR</button>
-        <button class="lang-btn" data-lang="de-DE" onclick="setLang('de-DE')">🇩🇪 DE</button>
-        <button class="lang-btn" data-lang="it-IT" onclick="setLang('it-IT')">🇮🇹 IT</button>
-        <button class="lang-btn" data-lang="pt-BR" onclick="setLang('pt-BR')">🇧🇷 PT</button>
-        <button class="lang-btn" data-lang="ja-JP" onclick="setLang('ja-JP')">🇯🇵 JP</button>
-        <button class="lang-btn" data-lang="ko-KR" onclick="setLang('ko-KR')">🇰🇷 KR</button>
-        <button class="lang-btn" data-lang="zh-CN" onclick="setLang('zh-CN')">🇨🇳 CN</button>
-        <button class="lang-btn" data-lang="nl-NL" onclick="setLang('nl-NL')">🇳🇱 NL</button>
-    </div>
-    <div class="scoreboard">
-        <div class="player-card" id="p1-card">
-            <input type="text" class="player-name" id="p1-name" value="Player 1" maxlength="15">
-            <div class="big-number" id="p1-sets">0</div>
-            <div class="label">Sets</div>
-            <div class="btn-row">
-                <button class="btn minus" onclick="adjust(1,'sets',-1)">−</button>
-                <button class="btn" onclick="adjust(1,'sets',1)">+</button>
-            </div>
-            <div class="big-number" id="p1-games" style="font-size:32px;margin-top:10px;">0</div>
-            <div class="label">Games</div>
-            <div class="btn-row">
-                <button class="btn minus" onclick="adjust(1,'games',-1)">−</button>
-                <button class="btn" onclick="adjust(1,'games',1)">+</button>
+    <span class="set-label">5-Set Scorer</span>
+    <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
+</header>
+
+<div class="set-headers">
+    <div class="set-header-spacer"></div>
+    <div class="set-header-labels" id="set-header-labels"></div>
+</div>
+
+<div class="players">
+    <div class="player-row p1-row" id="p1-row">
+        <div class="player-info">
+            <input type="text" class="player-name-input" id="p1-name" placeholder="Player 1" maxlength="10" value="Player 1">
+            <div class="score-controls">
+                <button class="sc-btn minus" onclick="adjGames(1,-1)">−</button>
+                <div class="total-score-wrap">
+                    <div class="total-games" id="p1-games">0</div>
+                    <div class="games-label">games</div>
+                </div>
+                <button class="sc-btn plus" onclick="adjGames(1,1)">+</button>
             </div>
         </div>
-        <div class="player-card" id="p2-card">
-            <input type="text" class="player-name" id="p2-name" value="Player 2" maxlength="15">
-            <div class="big-number" id="p2-sets">0</div>
-            <div class="label">Sets</div>
-            <div class="btn-row">
-                <button class="btn minus" onclick="adjust(2,'sets',-1)">−</button>
-                <button class="btn" onclick="adjust(2,'sets',1)">+</button>
+        <div class="sets-area" id="p1-sets-area"></div>
+    </div>
+
+    <div class="player-row p2-row" id="p2-row">
+        <div class="player-info">
+            <input type="text" class="player-name-input" id="p2-name" placeholder="Player 2" maxlength="10" value="Player 2">
+            <div class="score-controls">
+                <button class="sc-btn minus" onclick="adjGames(2,-1)">−</button>
+                <div class="total-score-wrap">
+                    <div class="total-games" id="p2-games">0</div>
+                    <div class="games-label">games</div>
+                </div>
+                <button class="sc-btn plus" onclick="adjGames(2,1)">+</button>
             </div>
-            <div class="big-number" id="p2-games" style="font-size:32px;margin-top:10px;">0</div>
-            <div class="label">Games</div>
-            <div class="btn-row">
-                <button class="btn minus" onclick="adjust(2,'games',-1)">−</button>
-                <button class="btn" onclick="adjust(2,'games',1)">+</button>
+        </div>
+        <div class="sets-area" id="p2-sets-area"></div>
+    </div>
+</div>
+
+<div class="undo-hint" id="undo-hint">Tap a set box to edit scores</div>
+
+<div class="action-bar">
+    <button class="act-btn" onclick="undoLast()">↩ Undo</button>
+    <button class="act-btn" onclick="swapPlayers()">⇄ Swap</button>
+    <button class="act-btn" onclick="exportData()">⬇ Export</button>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal">
+        <h3 id="modal-title">Set 1</h3>
+        <div class="modal-scores">
+            <div class="modal-player modal-p1">
+                <div class="modal-player-name" id="modal-p1-name">P1</div>
+                <div class="modal-num" id="modal-p1-score">0</div>
+                <div class="modal-btns">
+                    <button class="modal-sc minus" onclick="modalAdj(1,-1)">−</button>
+                    <button class="modal-sc plus" onclick="modalAdj(1,1)">+</button>
+                </div>
+            </div>
+            <div class="modal-divider">—</div>
+            <div class="modal-player modal-p2">
+                <div class="modal-player-name" id="modal-p2-name">P2</div>
+                <div class="modal-num" id="modal-p2-score">0</div>
+                <div class="modal-btns">
+                    <button class="modal-sc minus" onclick="modalAdj(2,-1)">−</button>
+                    <button class="modal-sc plus" onclick="modalAdj(2,1)">+</button>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="controls">
-        <button class="main-btn start" id="main-btn" onclick="toggleListening()">
-            <span id="btn-icon">▶</span><span id="btn-text">Start Umpire</span>
-        </button>
-        <div class="secondary">
-            <button class="sec-btn" onclick="resetMatch()">↺ Reset</button>
-            <button class="sec-btn" onclick="swapPlayers()">⇄ Swap</button>
-            <button class="sec-btn" onclick="undoLast()">↩ Undo</button>
-            <button class="sec-btn" onclick="exportHistory()">⬇ Export</button>
-            <button class="sec-btn" onclick="analyzeWithAI()">🤖 AI Analysis</button>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+            <button class="modal-save" onclick="saveModal()">Save Set</button>
         </div>
     </div>
-    <div class="history" id="history">
-        <div class="history-header">
-            <span class="history-title">📋 History</span>
-            <span class="history-actions">
-                <button onclick="clearHistory()">Clear</button>
-            </span>
-        </div>
-    </div>
-    <div class="toast" id="toast"></div>
-    <div class="install-banner" id="install-banner"><span>📲 Install Voice Umpire for offline use</span><button onclick="installPWA()">Install</button></div>
-    <video id="no-sleep" loop muted playsinline><source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4"></video>
-    <script>
-    const APP_VERSION = '2.8';
-    const APP_BUILD = '2026-05-11-8';
+</div>
 
-    const LANG_NAMES = {
-        'en-US': 'English', 'es-ES': 'Español', 'fr-FR': 'Français', 'de-DE': 'Deutsch',
-        'it-IT': 'Italiano', 'pt-BR': 'Português', 'ja-JP': '日本語', 'ko-KR': '한국어',
-        'zh-CN': '中文', 'nl-NL': 'Nederlands'
-    };
+<div class="toast" id="toast"></div>
 
-    let state = {
-        p1: { sets: 0, games: 0 }, p2: { sets: 0, games: 0 },
-        p1Name: 'Player 1', p2Name: 'Player 2',
-        history: [], entries: [], isListening: false, recognition: null, wakeLock: null,
-        settings: { autorestart: true, lang: 'en-US' },
-        consecutiveErrors: 0, lastCmdTime: 0
-    };
-    let deferredPrompt = null;
+<footer>
+    <a class="footer-link" href="https://happybein.com" target="_blank" rel="noopener">
+        <!-- Miniature logo in footer -->
+        <svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
+            <rect x="76" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
+            <rect x="18" y="42" width="64" height="12" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
+            <rect x="33" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
+            <rect x="59" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
+            <rect x="37" y="66" width="26" height="8" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
+            <circle cx="5" cy="5" r="4" fill="none" stroke="#3dba7a" stroke-width="2.5"/>
+            <circle cx="5" cy="5" r="1.5" fill="white"/>
+            <circle cx="18" cy="90" r="5" fill="none" stroke="#3d8eba" stroke-width="3"/>
+            <circle cx="18" cy="90" r="2" fill="white"/>
+            <circle cx="82" cy="28" r="4" fill="none" stroke="#3dba7a" stroke-width="2.5"/>
+            <circle cx="82" cy="28" r="1.5" fill="white"/>
+            <circle cx="95" cy="95" r="4" fill="none" stroke="#3d8eba" stroke-width="3"/>
+            <circle cx="95" cy="95" r="1.5" fill="white"/>
+        </svg>
+        happybein.com
+    </a>
+</footer>
 
-    const els = {
-        p1Sets: document.getElementById('p1-sets'), p2Sets: document.getElementById('p2-sets'),
-        p1Games: document.getElementById('p1-games'), p2Games: document.getElementById('p2-games'),
-        p1Name: document.getElementById('p1-name'), p2Name: document.getElementById('p2-name'),
-        p1Card: document.getElementById('p1-card'), p2Card: document.getElementById('p2-card'),
-        status: document.getElementById('status'), mainBtn: document.getElementById('main-btn'),
-        btnIcon: document.getElementById('btn-icon'), btnText: document.getElementById('btn-text'),
-        history: document.getElementById('history'), toast: document.getElementById('toast'),
-        noSleep: document.getElementById('no-sleep')
-    };
+<script>
+const NUM_SETS = 5;
 
-    function init() {
-        loadSettings();
-        updateUI();
-        els.p1Name.addEventListener('change', e => state.p1Name = e.target.value || 'Player 1');
-        els.p2Name.addEventListener('change', e => state.p2Name = e.target.value || 'Player 2');
-        setupInstall();
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+let state = {
+    p1Name: 'Player 1', p2Name: 'Player 2',
+    p1Games: 0, p2Games: 0,
+    sets: Array.from({ length: NUM_SETS }, () => ({ p1: 0, p2: 0 })),
+    history: []
+};
+
+let modalSet = null;
+let modalScores = { p1: 0, p2: 0 };
+
+function init() {
+    buildSetHeaders();
+    buildSetBoxes();
+    loadState();
+    renderAll();
+
+    document.getElementById('p1-name').addEventListener('input', e => {
+        state.p1Name = e.target.value || 'Player 1';
+        updateNames(); saveState();
+    });
+    document.getElementById('p2-name').addEventListener('input', e => {
+        state.p2Name = e.target.value || 'Player 2';
+        updateNames(); saveState();
+    });
+
+    setTimeout(() => document.getElementById('undo-hint').classList.add('show'), 600);
+    setTimeout(() => document.getElementById('undo-hint').classList.remove('show'), 4000);
+}
+
+function buildSetHeaders() {
+    const el = document.getElementById('set-header-labels');
+    el.innerHTML = '';
+    for (let i = 0; i < NUM_SETS; i++) {
+        const d = document.createElement('div');
+        d.className = 'set-col-label';
+        d.textContent = 'S' + (i + 1);
+        el.appendChild(d);
     }
+}
 
-    function setLang(lang) {
-        state.settings.lang = lang;
-        document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-        if (state.recognition) {
-            state.recognition.lang = lang;
-            if (state.isListening) { stopListening(); setTimeout(toggleListening, 300); }
+function buildSetBoxes() {
+    ['p1', 'p2'].forEach(p => {
+        const area = document.getElementById(p + '-sets-area');
+        area.innerHTML = '';
+        const row = document.createElement('div');
+        row.className = 'set-boxes';
+        for (let i = 0; i < NUM_SETS; i++) {
+            const box = document.createElement('div');
+            box.className = 'set-box';
+            box.id = p + '-set-' + i;
+            box.innerHTML = '<div class="set-score" id="' + p + '-setscore-' + i + '">—</div>';
+            box.addEventListener('click', () => openModal(i));
+            row.appendChild(box);
         }
-        saveSettings();
-        showToast('Language: ' + LANG_NAMES[lang], 'success');
-    }
+        area.appendChild(row);
+    });
+}
 
-    function adjust(player, type, delta) {
-        saveHist();
-        const t = player === 1 ? state.p1 : state.p2;
-        t[type] = Math.max(0, t[type] + delta);
-        updateUI();
-        const name = player === 1 ? state.p1Name : state.p2Name;
-        const label = type === 'sets' ? 'set' : 'game';
-        const action = (delta > 0 ? '+' : '−') + '1 ' + label + ' ' + name;
-        addEntry('manual', action);
-        speak(action);
-    }
+function renderAll() {
+    document.getElementById('p1-games').textContent = state.p1Games;
+    document.getElementById('p2-games').textContent = state.p2Games;
+    document.getElementById('p1-name').value = state.p1Name;
+    document.getElementById('p2-name').value = state.p2Name;
+    updateNames();
 
-    function updateUI() {
-        els.p1Sets.textContent = state.p1.sets; els.p2Sets.textContent = state.p2.sets;
-        els.p1Games.textContent = state.p1.games; els.p2Games.textContent = state.p2.games;
-        els.p1Card.classList.remove('active'); els.p2Card.classList.remove('active');
-        if (state.p1.sets > state.p2.sets) els.p1Card.classList.add('active');
-        else if (state.p2.sets > state.p1.sets) els.p2Card.classList.add('active');
-    }
-
-    function saveHist() {
-        state.history.push({ p1: { ...state.p1 }, p2: { ...state.p2 }, p1Name: state.p1Name, p2Name: state.p2Name, ts: Date.now() });
-        if (state.history.length > 30) state.history.shift();
-    }
-
-    function resetMatch() {
-        saveHist();
-        state.p1.sets = 0; state.p1.games = 0; state.p2.sets = 0; state.p2.games = 0;
-        updateUI();
-        addEntry('manual', 'Match reset');
-        speak('Match reset');
-    }
-
-    function swapPlayers() {
-        saveHist();
-        const ts = state.p1.sets, tg = state.p1.games;
-        state.p1.sets = state.p2.sets; state.p1.games = state.p2.games;
-        state.p2.sets = ts; state.p2.games = tg;
-        const tn = state.p1Name; state.p1Name = state.p2Name; state.p2Name = tn;
-        els.p1Name.value = state.p1Name; els.p2Name.value = state.p2Name;
-        updateUI();
-        addEntry('manual', 'Players swapped');
-        speak('Players swapped');
-    }
-
-    function undoLast() {
-        if (state.history.length === 0) { showToast('Nothing to undo', 'error'); return; }
-        const last = state.history.pop();
-        state.p1 = { ...last.p1 }; state.p2 = { ...last.p2 };
-        state.p1Name = last.p1Name; state.p2Name = last.p2Name;
-        els.p1Name.value = state.p1Name; els.p2Name.value = state.p2Name;
-        updateUI();
-        addEntry('manual', 'Undo');
-        speak('Undo');
-    }
-
-    function addEntry(type, text) {
-        const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const entry = { type, text, time, ts: Date.now() };
-        state.entries.unshift(entry);
-        renderEntry(entry);
-        while (state.entries.length > 50) { state.entries.pop(); els.history.removeChild(els.history.lastChild); }
-    }
-
-    function renderEntry(entry) {
-        const div = document.createElement('div');
-        div.className = 'entry';
-        const cls = entry.type === 'voice' ? 'entry-voice' : entry.type === 'ai' ? 'entry-ai' : 'entry-manual';
-        div.innerHTML = '<span class="entry-time">' + entry.time + '</span><span class="' + cls + '">' + entry.type.toUpperCase() + ':</span> ' + escapeHtml(entry.text);
-        const header = els.history.querySelector('.history-header');
-        if (header && header.nextSibling) els.history.insertBefore(div, header.nextSibling);
-        else els.history.appendChild(div);
-    }
-
-    function escapeHtml(t) {
-        const d = document.createElement('div'); d.textContent = t; return d.innerHTML;
-    }
-
-    function clearHistory() {
-        state.entries = [];
-        const header = els.history.querySelector('.history-header');
-        els.history.innerHTML = ''; if (header) els.history.appendChild(header);
-        showToast('History cleared', 'success');
-    }
-
-    // ==================== EXPORT ====================
-    function exportHistory() {
-        const data = {
-            app: 'Voice Umpire', version: APP_VERSION, build: APP_BUILD,
-            exportedAt: new Date().toISOString(),
-            players: { p1: state.p1Name, p2: state.p2Name },
-            currentScore: { p1: state.p1, p2: state.p2 },
-            entries: state.entries
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'voice-umpire-history-' + new Date().toISOString().slice(0,10) + '.json';
-        a.click(); URL.revokeObjectURL(url);
-        showToast('History exported!', 'success');
-    }
-
-    // ==================== AI ANALYSIS ====================
-    function analyzeWithAI() {
-        if (state.entries.length === 0) { showToast('No history to analyze', 'error'); return; }
-        const data = {
-            app: 'Voice Umpire', version: APP_VERSION,
-            players: { p1: state.p1Name, p2: state.p2Name },
-            currentScore: { p1: state.p1, p2: state.p2 },
-            entries: state.entries
-        };
-        const json = JSON.stringify(data, null, 2);
-        const prompt = 'Analyze this sports match data from Voice Umpire. Provide insights on: 1) Match progression and key moments, 2) Player performance patterns, 3) Any notable observations from the voice notes, 4) Suggestions for improvement. Keep it concise and actionable.\n\nDATA:\n' + json;
-
-        // Create analysis entry placeholder
-        addEntry('ai', '⏳ Requesting AI analysis...');
-
-        // Copy to clipboard with instructions
-        navigator.clipboard.writeText(prompt).then(() => {
-            showToast('Analysis prompt copied! Paste into your AI chat.', 'success');
-            // Update the placeholder
-            state.entries[0].text = 'Analysis prompt copied to clipboard. Paste it into Kimi, ChatGPT, or Claude for instant match insights!';
-            refreshHistory();
-        }).catch(() => {
-            // Fallback: show the prompt in a modal/toast for manual copy
-            showToast('Copy failed — check console for prompt', 'error');
-            console.log('=== AI ANALYSIS PROMPT ===');
-            console.log(prompt);
-            console.log('==========================');
+    const nextEmpty = nextEmptySet();
+    for (let i = 0; i < NUM_SETS; i++) {
+        const s = state.sets[i];
+        const isEmpty = s.p1 === 0 && s.p2 === 0;
+        ['p1', 'p2'].forEach(p => {
+            const box = document.getElementById(p + '-set-' + i);
+            const score = document.getElementById(p + '-setscore-' + i);
+            const val = s[p];
+            const opp = p === 'p1' ? s.p2 : s.p1;
+            score.textContent = isEmpty ? '—' : val;
+            box.className = 'set-box';
+            if (!isEmpty) {
+                box.classList.add('has-score');
+                if (val > opp) box.classList.add('won');
+            }
+            if (i === nextEmpty) box.classList.add('current');
         });
     }
+}
 
-    function refreshHistory() {
-        const header = els.history.querySelector('.history-header');
-        els.history.innerHTML = ''; if (header) els.history.appendChild(header);
-        state.entries.slice().reverse().forEach(renderEntry);
+function nextEmptySet() {
+    for (let i = 0; i < NUM_SETS; i++) {
+        if (state.sets[i].p1 === 0 && state.sets[i].p2 === 0) return i;
     }
+    return -1;
+}
 
-    // ==================== VOICE ====================
-    function processCommand(t) {
-        const now = Date.now();
-        if (now - state.lastCmdTime < 600) return;
-        state.lastCmdTime = now;
-        addEntry('voice', t);
-        state.consecutiveErrors = 0;
-        if (/^(stop|pause|halt)/.test(t)) { stopListening(); addEntry('manual', 'Stopped by voice'); }
-    }
+function updateNames() {
+    document.getElementById('modal-p1-name').textContent = state.p1Name;
+    document.getElementById('modal-p2-name').textContent = state.p2Name;
+}
 
-    function setupRecog() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) { showToast('Speech recognition not supported', 'error'); return false; }
-        state.recognition = new SR();
-        state.recognition.continuous = true;
-        state.recognition.interimResults = false;
-        state.recognition.lang = state.settings.lang;
-        state.recognition.onstart = () => {
-            state.isListening = true; state.consecutiveErrors = 0;
-            updateStatus('listening', 'Listening...'); updateMainBtn();
-            addEntry('manual', '🎙️ Microphone active (' + LANG_NAMES[state.settings.lang] + ')');
-        };
-        state.recognition.onresult = (e) => {
-            const r = e.results[e.results.length-1];
-            if (r.isFinal) processCommand(r[0].transcript.trim());
-        };
-        state.recognition.onerror = (e) => {
-            state.consecutiveErrors++;
-            if (e.error === 'no-speech') addEntry('manual', 'No speech detected');
-            else if (e.error === 'not-allowed') { updateStatus('error', 'Mic denied'); showToast('Allow microphone access', 'error'); stopListening(); return; }
-            else { updateStatus('error', e.error); addEntry('manual', 'Error: ' + e.error); }
-            if (state.settings.autorestart && state.isListening && state.consecutiveErrors < 5) {
-                setTimeout(() => { if (state.isListening) safeStart(); }, 500);
-            } else if (state.consecutiveErrors >= 5) { updateStatus('error', 'Too many errors'); stopListening(); }
-        };
-        state.recognition.onend = () => { if (state.isListening && state.settings.autorestart) setTimeout(safeStart, 100); };
-        return true;
-    }
+function adjGames(player, delta) {
+    saveHist();
+    if (player === 1) state.p1Games = Math.max(0, state.p1Games + delta);
+    else              state.p2Games = Math.max(0, state.p2Games + delta);
+    renderAll(); saveState();
+}
 
-    function safeStart() { if (!state.recognition) return; try { state.recognition.start(); } catch(e) { if (e.name !== 'InvalidStateError') console.error(e); } }
+function openModal(setIndex) {
+    modalSet = setIndex;
+    modalScores = { ...state.sets[setIndex] };
+    document.getElementById('modal-title').textContent = 'Set ' + (setIndex + 1);
+    updateModalDisplay();
+    document.getElementById('modal-overlay').classList.add('open');
+}
 
-    async function toggleListening() {
-        if (state.isListening) stopListening();
-        else {
-            if (!state.recognition) { if (!setupRecog()) return; }
-            try { state.recognition.lang = state.settings.lang; state.recognition.start(); await acquireWakeLock(); }
-            catch(e) { showToast('Could not start: '+e.message, 'error'); }
-        }
-    }
+function updateModalDisplay() {
+    document.getElementById('modal-p1-score').textContent = modalScores.p1;
+    document.getElementById('modal-p2-score').textContent = modalScores.p2;
+}
 
-    function stopListening() {
-        state.isListening = false; state.consecutiveErrors = 0;
-        if (state.recognition) try { state.recognition.stop(); } catch(e){}
-        releaseWakeLock();
-        updateStatus('idle', 'Idle'); updateMainBtn();
-        addEntry('manual', 'Stopped listening');
-    }
+function modalAdj(player, delta) {
+    if (player === 1) modalScores.p1 = Math.max(0, modalScores.p1 + delta);
+    else              modalScores.p2 = Math.max(0, modalScores.p2 + delta);
+    updateModalDisplay();
+}
 
-    async function acquireWakeLock() {
-        if ('wakeLock' in navigator) { try { state.wakeLock = await navigator.wakeLock.request('screen'); return; } catch(err) {} }
-        try { await els.noSleep.play(); } catch(e) {}
-    }
-    function releaseWakeLock() {
-        if (state.wakeLock) { state.wakeLock.release().catch(()=>{}); state.wakeLock = null; }
-        try { els.noSleep.pause(); } catch(e) {}
-    }
+function saveModal() {
+    saveHist();
+    state.sets[modalSet] = { ...modalScores };
+    renderAll(); saveState();
+    closeModal();
+    showToast('Set ' + (modalSet + 1) + ' saved');
+}
 
-    function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.1; window.speechSynthesis.speak(u); }
-    function updateStatus(type, text) { els.status.className = 'status ' + type; els.status.textContent = text; }
-    function updateMainBtn() { if (state.isListening) { els.mainBtn.className='main-btn stop'; els.btnIcon.textContent='⏹'; els.btnText.textContent='Stop Umpire'; } else { els.mainBtn.className='main-btn start'; els.btnIcon.textContent='▶'; els.btnText.textContent='Start Umpire'; } }
-    function showToast(msg, type) { els.toast.textContent = msg; els.toast.className = 'toast show ' + (type||''); setTimeout(() => els.toast.classList.remove('show'), 3000); }
+function closeModal(e) {
+    if (e && e.target !== document.getElementById('modal-overlay')) return;
+    document.getElementById('modal-overlay').classList.remove('open');
+    modalSet = null;
+}
 
-    function loadSettings() { try { const s = localStorage.getItem('vu2_settings'); if (s) Object.assign(state.settings, JSON.parse(s)); } catch(e){} setLang(state.settings.lang); }
-    function saveSettings() { try { localStorage.setItem('vu2_settings', JSON.stringify(state.settings)); } catch(e){} }
+function confirmReset() {
+    if (confirm('Reset the entire match?')) resetMatch();
+}
 
-    function setupInstall() {
-        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-banner').classList.add('show'); });
-        window.addEventListener('appinstalled', () => { deferredPrompt = null; document.getElementById('install-banner').classList.remove('show'); showToast('Voice Umpire installed!', 'success'); });
-    }
-    async function installPWA() { if (!deferredPrompt) return; deferredPrompt.prompt(); const r = await deferredPrompt.userChoice; if (r.outcome === 'accepted') document.getElementById('install-banner').classList.remove('show'); deferredPrompt = null; }
+function resetMatch() {
+    saveHist();
+    state.p1Games = 0; state.p2Games = 0;
+    state.sets = Array.from({ length: NUM_SETS }, () => ({ p1: 0, p2: 0 }));
+    renderAll(); saveState();
+    showToast('Match reset');
+}
 
-    init();
-    </script>
+function swapPlayers() {
+    saveHist();
+    [state.p1Name, state.p2Name] = [state.p2Name, state.p1Name];
+    [state.p1Games, state.p2Games] = [state.p2Games, state.p1Games];
+    state.sets = state.sets.map(s => ({ p1: s.p2, p2: s.p1 }));
+    renderAll(); saveState();
+    showToast('Players swapped');
+}
+
+function undoLast() {
+    if (state.history.length === 0) { showToast('Nothing to undo'); return; }
+    const prev = state.history.pop();
+    Object.assign(state, { ...prev, history: state.history });
+    state.sets = prev.sets.map(s => ({ ...s }));
+    renderAll(); saveState();
+    showToast('Undone');
+}
+
+function saveHist() {
+    state.history.push({
+        p1Games: state.p1Games, p2Games: state.p2Games,
+        p1Name: state.p1Name, p2Name: state.p2Name,
+        sets: state.sets.map(s => ({ ...s }))
+    });
+    if (state.history.length > 20) state.history.shift();
+}
+
+function exportData() {
+    const rows = ['Set,Player 1 (' + state.p1Name + '),Player 2 (' + state.p2Name + ')'];
+    state.sets.forEach((s, i) => rows.push((i+1) + ',' + s.p1 + ',' + s.p2));
+    rows.push('', 'Games,' + state.p1Games + ',' + state.p2Games);
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gametrack-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click(); URL.revokeObjectURL(url);
+    showToast('Exported!');
+}
+
+function saveState() {
+    try { localStorage.setItem('gt_state', JSON.stringify(state)); } catch(e) {}
+}
+function loadState() {
+    try {
+        const raw = localStorage.getItem('gt_state');
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s.sets && s.sets.length === NUM_SETS) Object.assign(state, s);
+    } catch(e) {}
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+init();
+</script>
 </body>
 </html>
