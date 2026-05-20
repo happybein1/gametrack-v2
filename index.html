@@ -176,40 +176,29 @@
         .score-controls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
         }
-        .sc-btn {
-            width: 26px; height: 26px;
-            border-radius: 6px;
-            border: 1px solid var(--line);
-            background: var(--surface);
-            color: var(--text);
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.1s;
-            flex-shrink: 0;
-        }
-        .sc-btn:active { transform: scale(0.88); }
-        .p1-row .sc-btn.plus:active  { background: var(--green); border-color: var(--green); color: #000; }
-        .p2-row .sc-btn.plus:active  { background: var(--blue);  border-color: var(--blue);  color: #000; }
-        .sc-btn.minus:active { background: var(--danger); border-color: var(--danger); }
-
-        .total-score-wrap { text-align: center; }
-        .total-games {
+        .games-input-wrap { text-align: center; width: 100%; }
+        .games-input {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 30px;
             line-height: 1;
+            width: 64px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            text-align: center;
+            outline: none;
+            padding: 4px 2px 2px;
+            -moz-appearance: textfield;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .p1-row .total-games { color: var(--green); }
-        .p2-row .total-games { color: var(--blue); }
-        .games-label {
-            font-size: 8px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        .games-input::-webkit-inner-spin-button,
+        .games-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .p1-row .games-input { color: var(--green); caret-color: var(--green); }
+        .p1-row .games-input:focus { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-glow); }
+        .p2-row .games-input { color: var(--blue); caret-color: var(--blue); }
+        .p2-row .games-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-glow); }
 
         /* ── Set boxes ── */
         .sets-area {
@@ -326,29 +315,41 @@
         .modal-player { flex: 1; text-align: center; }
         .modal-player-name {
             font-size: 10px; color: var(--muted);
-            letter-spacing: 1px; margin-bottom: 10px;
+            letter-spacing: 1px; margin-bottom: 12px;
             text-transform: uppercase;
         }
-        .modal-num {
+        .modal-input {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 54px; line-height: 1;
-        }
-        .modal-p1 .modal-num { color: var(--green); }
-        .modal-p2 .modal-num { color: var(--blue); }
-        .modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
-        .modal-sc {
-            width: 38px; height: 38px;
-            border-radius: 8px;
-            border: 1px solid var(--line);
+            font-size: 64px; line-height: 1;
+            width: 100%;
             background: var(--surface);
-            color: var(--text);
-            font-size: 20px; font-weight: 700;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--line);
+            border-radius: 12px;
+            text-align: center;
+            outline: none;
+            padding: 10px 4px 6px;
+            -moz-appearance: textfield;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .modal-sc.plus:active  { background: var(--green); color: #000; }
-        .modal-sc.minus:active { background: var(--danger); }
-        .modal-divider { color: var(--muted); font-size: 20px; padding-top: 10px; }
+        .modal-input::-webkit-inner-spin-button,
+        .modal-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .modal-p1 .modal-input {
+            color: var(--green);
+            caret-color: var(--green);
+        }
+        .modal-p1 .modal-input:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px var(--green-glow);
+        }
+        .modal-p2 .modal-input {
+            color: var(--blue);
+            caret-color: var(--blue);
+        }
+        .modal-p2 .modal-input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px var(--blue-glow);
+        }
+        .modal-divider { color: var(--muted); font-size: 20px; padding-top: 26px; }
         .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
         .modal-save {
             flex: 1; padding: 12px;
@@ -491,12 +492,10 @@
         <div class="player-info">
             <input type="text" class="player-name-input" id="p1-name" placeholder="Player 1" maxlength="10" value="Player 1">
             <div class="score-controls">
-                <button class="sc-btn minus" onclick="adjGames(1,-1)">−</button>
-                <div class="total-score-wrap">
-                    <div class="total-games" id="p1-games">0</div>
+                <div class="games-input-wrap">
+                    <input type="number" class="games-input" id="p1-games" min="0" max="999" value="0">
                     <div class="games-label">games</div>
                 </div>
-                <button class="sc-btn plus" onclick="adjGames(1,1)">+</button>
             </div>
         </div>
         <div class="sets-area" id="p1-sets-area"></div>
@@ -506,12 +505,10 @@
         <div class="player-info">
             <input type="text" class="player-name-input" id="p2-name" placeholder="Player 2" maxlength="10" value="Player 2">
             <div class="score-controls">
-                <button class="sc-btn minus" onclick="adjGames(2,-1)">−</button>
-                <div class="total-score-wrap">
-                    <div class="total-games" id="p2-games">0</div>
+                <div class="games-input-wrap">
+                    <input type="number" class="games-input" id="p2-games" min="0" max="999" value="0">
                     <div class="games-label">games</div>
                 </div>
-                <button class="sc-btn plus" onclick="adjGames(2,1)">+</button>
             </div>
         </div>
         <div class="sets-area" id="p2-sets-area"></div>
@@ -533,20 +530,12 @@
         <div class="modal-scores">
             <div class="modal-player modal-p1">
                 <div class="modal-player-name" id="modal-p1-name">P1</div>
-                <div class="modal-num" id="modal-p1-score">0</div>
-                <div class="modal-btns">
-                    <button class="modal-sc minus" onclick="modalAdj(1,-1)">−</button>
-                    <button class="modal-sc plus" onclick="modalAdj(1,1)">+</button>
-                </div>
+                <input type="number" class="modal-input" id="modal-p1-score" min="0" max="99" value="0">
             </div>
             <div class="modal-divider">—</div>
             <div class="modal-player modal-p2">
                 <div class="modal-player-name" id="modal-p2-name">P2</div>
-                <div class="modal-num" id="modal-p2-score">0</div>
-                <div class="modal-btns">
-                    <button class="modal-sc minus" onclick="modalAdj(2,-1)">−</button>
-                    <button class="modal-sc plus" onclick="modalAdj(2,1)">+</button>
-                </div>
+                <input type="number" class="modal-input" id="modal-p2-score" min="0" max="99" value="0">
             </div>
         </div>
         <div class="modal-actions">
@@ -609,6 +598,19 @@ function init() {
         updateNames(); saveState();
     });
 
+    document.getElementById('p1-games').addEventListener('change', e => {
+        const v = parseInt(e.target.value, 10);
+        saveHist();
+        state.p1Games = isNaN(v) || v < 0 ? 0 : v;
+        renderAll(); saveState();
+    });
+    document.getElementById('p2-games').addEventListener('change', e => {
+        const v = parseInt(e.target.value, 10);
+        saveHist();
+        state.p2Games = isNaN(v) || v < 0 ? 0 : v;
+        renderAll(); saveState();
+    });
+
     setTimeout(() => document.getElementById('undo-hint').classList.add('show'), 600);
     setTimeout(() => document.getElementById('undo-hint').classList.remove('show'), 4000);
 }
@@ -643,8 +645,8 @@ function buildSetBoxes() {
 }
 
 function renderAll() {
-    document.getElementById('p1-games').textContent = state.p1Games;
-    document.getElementById('p2-games').textContent = state.p2Games;
+    document.getElementById('p1-games').value = state.p1Games;
+    document.getElementById('p2-games').value = state.p2Games;
     document.getElementById('p1-name').value = state.p1Name;
     document.getElementById('p2-name').value = state.p2Name;
     updateNames();
@@ -681,35 +683,30 @@ function updateNames() {
     document.getElementById('modal-p2-name').textContent = state.p2Name;
 }
 
-function adjGames(player, delta) {
-    saveHist();
-    if (player === 1) state.p1Games = Math.max(0, state.p1Games + delta);
-    else              state.p2Games = Math.max(0, state.p2Games + delta);
-    renderAll(); saveState();
-}
-
 function openModal(setIndex) {
     modalSet = setIndex;
     modalScores = { ...state.sets[setIndex] };
     document.getElementById('modal-title').textContent = 'Set ' + (setIndex + 1);
-    updateModalDisplay();
+    const p1in = document.getElementById('modal-p1-score');
+    const p2in = document.getElementById('modal-p2-score');
+    p1in.value = modalScores.p1;
+    p2in.value = modalScores.p2;
     document.getElementById('modal-overlay').classList.add('open');
-}
-
-function updateModalDisplay() {
-    document.getElementById('modal-p1-score').textContent = modalScores.p1;
-    document.getElementById('modal-p2-score').textContent = modalScores.p2;
-}
-
-function modalAdj(player, delta) {
-    if (player === 1) modalScores.p1 = Math.max(0, modalScores.p1 + delta);
-    else              modalScores.p2 = Math.max(0, modalScores.p2 + delta);
-    updateModalDisplay();
+    // auto-focus first input, select all; Enter on either input saves
+    setTimeout(() => { p1in.focus(); p1in.select(); }, 120);
+    [p1in, p2in].forEach(inp => {
+        inp.onkeydown = e => { if (e.key === 'Enter') saveModal(); };
+    });
 }
 
 function saveModal() {
+    const p1val = parseInt(document.getElementById('modal-p1-score').value, 10);
+    const p2val = parseInt(document.getElementById('modal-p2-score').value, 10);
     saveHist();
-    state.sets[modalSet] = { ...modalScores };
+    state.sets[modalSet] = {
+        p1: isNaN(p1val) || p1val < 0 ? 0 : p1val,
+        p2: isNaN(p2val) || p2val < 0 ? 0 : p2val
+    };
     renderAll(); saveState();
     closeModal();
     showToast('Set ' + (modalSet + 1) + ' saved');
