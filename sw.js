@@ -1,5 +1,9 @@
-const CACHE_NAME = 'gametrack-v1-0';
-const STATIC_ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE_NAME = 'gametrack-v1-7';
+const STATIC_ASSETS = [
+  '/', '/index.html', '/manifest.json',
+  '/favicon.ico', '/og-image.png', '/hb-logo.png',
+  '/icons/icon-192x192.png', '/icons/icon-512x512.png'
+];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
