@@ -11,7 +11,7 @@
     <meta name="robots" content="index, follow">
 
     <!-- Canonical -->
-    <link rel="canonical" href="https://happybein.com">
+    <link rel="canonical" href="https://gametrack.yeahvibe.com">
 
     <!-- Favicon -->
     <link rel="icon" href="favicon.ico" sizes="any">
@@ -28,7 +28,7 @@
     <meta property="og:image" content="og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:url" content="https://happybein.com">
+    <meta property="og:url" content="https://gametrack.yeahvibe.com">
     <meta property="og:site_name" content="Gametrack">
 
     <!-- Twitter Card -->
@@ -365,7 +365,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v1.9</span>
+        <span class="version-tag">v2.0</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>
@@ -402,6 +402,7 @@
     <button class="act-btn" onclick="undoLast()">↩ Undo</button>
     <button class="act-btn" onclick="swapPlayers()">⇄ Swap</button>
     <button class="act-btn" onclick="exportData()">⬇ Export</button>
+    <button class="act-btn share-btn" onclick="shareUrl()">⬆ Share</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -604,6 +605,17 @@ function initNameListeners() {
     document.getElementById('p2-name').addEventListener('input', e => {
         state.p2Name = e.target.value || 'Player 2'; saveState();
     });
+}
+
+function shareUrl() {
+    const url = 'https://gametrack.yeahvibe.com';
+    if (navigator.share) {
+        navigator.share({ title: 'Gametrack', url }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => {
+            prompt('Copy this link:', url);
+        });
+    }
 }
 
 // ── Timer ─────────────────────────────────────────────────────────
