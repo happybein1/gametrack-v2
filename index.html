@@ -259,6 +259,48 @@
         .p2-col .step-btn.up:active { background: var(--blue);  border-color: var(--blue);  color: #000; }
         .step-btn.down:active { background: var(--danger); border-color: var(--danger); color: #fff; }
 
+        /* ── TIMER BAR ── */
+        .timer-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 10px 20px;
+            border-top: 1px solid var(--line);
+            background: var(--bg2);
+        }
+        .timer-display {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 32px;
+            letter-spacing: 4px;
+            color: var(--text);
+            min-width: 100px;
+            text-align: center;
+            line-height: 1;
+            transition: color 0.3s;
+        }
+        .timer-display.running { color: var(--green); }
+        .timer-btn {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .timer-btn:active { transform: scale(0.88); }
+        .timer-btn.start-stop { font-size: 13px; }
+        .timer-btn.start-stop.running {
+            background: var(--green-dim);
+            border-color: var(--green);
+            color: var(--green);
+        }
+        .timer-btn.reset-timer:active { background: var(--danger); border-color: var(--danger); color: #fff; }
+
         /* ── ACTION BAR ── */
         .action-bar {
             display: flex; gap: 8px;
@@ -323,7 +365,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v1.8</span>
+        <span class="version-tag">v1.9</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>
@@ -348,6 +390,12 @@
         <!-- set items built by JS -->
     </div>
 
+</div>
+
+<div class="timer-bar">
+    <button class="timer-btn reset-timer" id="timer-reset" onclick="timerReset()">↺</button>
+    <div class="timer-display" id="timer-display">00:00</div>
+    <button class="timer-btn start-stop" id="timer-toggle" onclick="timerToggle()">▶</button>
 </div>
 
 <div class="action-bar">
@@ -556,6 +604,43 @@ function initNameListeners() {
     document.getElementById('p2-name').addEventListener('input', e => {
         state.p2Name = e.target.value || 'Player 2'; saveState();
     });
+}
+
+// ── Timer ─────────────────────────────────────────────────────────
+let timerSeconds = 0;
+let timerInterval = null;
+let timerRunning = false;
+
+function timerToggle() {
+    if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+    } else {
+        timerInterval = setInterval(() => {
+            timerSeconds++;
+            renderTimer();
+        }, 1000);
+        timerRunning = true;
+    }
+    renderTimer();
+}
+
+function timerReset() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = 0;
+    renderTimer();
+}
+
+function renderTimer() {
+    const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+    const s = String(timerSeconds % 60).padStart(2, '0');
+    const display = document.getElementById('timer-display');
+    const toggle  = document.getElementById('timer-toggle');
+    display.textContent = m + ':' + s;
+    display.classList.toggle('running', timerRunning);
+    toggle.textContent = timerRunning ? '⏸' : '▶';
+    toggle.classList.toggle('running', timerRunning);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
