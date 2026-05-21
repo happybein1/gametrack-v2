@@ -11,21 +11,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:       #050a08;
-            --bg2:      #0b1410;
-            --surface:  #111c17;
-            --line:     #1e3028;
-            --green:    #3dba7a;
-            --blue:     #3d8eba;
-            --green-dim: rgba(61,186,122,0.12);
-            --blue-dim:  rgba(61,142,186,0.12);
-            --green-glow: rgba(61,186,122,0.25);
-            --blue-glow:  rgba(61,142,186,0.25);
-            --text:     #e8f5ee;
-            --muted:    #4a7060;
-            --danger:   #e05555;
-            --p1:       #3dba7a;
-            --p2:       #3d8eba;
+            --bg:         #050a08;
+            --bg2:        #0b1410;
+            --surface:    #111c17;
+            --line:       #1e3028;
+            --green:      #3dba7a;
+            --blue:       #3d8eba;
+            --green-dim:  rgba(61,186,122,0.12);
+            --blue-dim:   rgba(61,142,186,0.12);
+            --green-glow: rgba(61,186,122,0.28);
+            --blue-glow:  rgba(61,142,186,0.28);
+            --text:       #e8f5ee;
+            --muted:      #4a7060;
+            --danger:     #e05555;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -40,335 +38,197 @@
             overflow-x: hidden;
         }
 
-        /* subtle grid texture */
         body::before {
             content: '';
-            position: fixed;
-            inset: 0;
+            position: fixed; inset: 0;
             background-image:
                 linear-gradient(rgba(61,186,122,0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(61,186,122,0.03) 1px, transparent 1px);
             background-size: 32px 32px;
-            pointer-events: none;
-            z-index: 0;
+            pointer-events: none; z-index: 0;
         }
 
-        header, .set-headers, .players, .action-bar, footer { position: relative; z-index: 1; }
+        header, .court, .action-bar, footer { position: relative; z-index: 1; }
 
-        /* ── Header ── */
+        /* ── HEADER ── */
         header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 18px 14px;
+            padding: 12px 16px;
             border-bottom: 1px solid var(--line);
             background: var(--bg2);
-        }
-
-        .logo-wordmark {
-            display: flex;
-            align-items: center;
             gap: 10px;
         }
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            flex-shrink: 0;
+        .logo-wordmark {
+            display: flex; align-items: center; gap: 9px; flex-shrink: 0;
         }
         .logo-text {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 24px;
-            letter-spacing: 3px;
+            font-size: 22px; letter-spacing: 3px;
             background: linear-gradient(120deg, var(--green), var(--blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .set-label {
-            font-size: 9px;
-            letter-spacing: 2px;
-            color: var(--muted);
-            text-transform: uppercase;
+        .header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .version-tag {
+            font-size: 9px; letter-spacing: 1px;
+            color: var(--muted); text-transform: uppercase;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 3px 8px; border-radius: 20px;
         }
         .reset-btn {
-            background: none;
-            border: 1px solid var(--line);
-            color: var(--muted);
-            font-family: 'DM Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 1px;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
+            background: none; border: 1px solid var(--line);
+            color: var(--muted); font-family: 'DM Mono', monospace;
+            font-size: 10px; letter-spacing: 1px;
+            padding: 5px 11px; border-radius: 6px; cursor: pointer;
             transition: all 0.15s;
         }
-        .reset-btn:hover, .reset-btn:active { border-color: var(--danger); color: var(--danger); }
+        .reset-btn:active { border-color: var(--danger); color: var(--danger); }
 
-        /* ── Column headers ── */
-        .set-headers {
-            display: flex;
-            align-items: stretch;
-            border-bottom: 1px solid var(--line);
-            background: var(--bg2);
-        }
-        .set-header-spacer {
-            width: 128px;
-            flex-shrink: 0;
-            border-right: 1px solid var(--line);
-        }
-        .set-header-labels {
+        /* ── TWO-COLUMN COURT ── */
+        .court {
             flex: 1;
-            display: flex;
-            padding: 6px 12px;
-            gap: 6px;
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr;
+            min-height: 0;
         }
-        .set-col-label {
-            flex: 1;
-            text-align: center;
-            font-size: 9px;
+
+        .player-col {
+            display: flex;
+            flex-direction: column;
+            padding: 14px 12px 10px;
+            gap: 12px;
+        }
+
+        /* center divider line */
+        .divider {
+            background: var(--line);
+            position: relative;
+        }
+        .divider::before {
+            content: 'VS';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 11px;
             color: var(--muted);
-            letter-spacing: 2px;
-            text-transform: uppercase;
+            background: var(--bg);
+            padding: 4px 0;
+            writing-mode: vertical-rl;
+            letter-spacing: 3px;
         }
 
-        /* ── Players ── */
-        .players {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        .player-row {
-            display: flex;
-            align-items: stretch;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .player-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 14px 14px;
-            gap: 10px;
-            width: 128px;
-            flex-shrink: 0;
-            border-right: 1px solid var(--line);
-        }
-
+        /* player name */
         .player-name-input {
-            background: transparent;
-            border: none;
+            background: transparent; border: none;
             border-bottom: 1px solid transparent;
             color: var(--text);
             font-family: 'DM Mono', monospace;
-            font-size: 12px;
-            font-weight: 500;
-            width: 100%;
-            outline: none;
-            letter-spacing: 0.5px;
-            padding-bottom: 2px;
+            font-size: 12px; font-weight: 500;
+            width: 100%; outline: none;
+            letter-spacing: 0.5px; padding-bottom: 3px;
             transition: border-color 0.2s;
         }
         .player-name-input::placeholder { color: var(--muted); }
-        .p1-row .player-name-input:focus { border-bottom-color: var(--green); }
-        .p2-row .player-name-input:focus { border-bottom-color: var(--blue); }
+        .p1-col .player-name-input:focus { border-bottom-color: var(--green); }
+        .p2-col .player-name-input:focus { border-bottom-color: var(--blue); }
 
-        .score-controls {
+        /* set row label */
+        .set-row-label {
+            font-size: 8px; color: var(--muted);
+            letter-spacing: 2px; text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        /* ── SET ITEM ── */
+        .set-item {
             display: flex;
             align-items: center;
-            justify-content: center;
-        }
-        .games-input-wrap { text-align: center; width: 100%; }
-        .games-input {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 30px;
-            line-height: 1;
-            width: 64px;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            text-align: center;
-            outline: none;
-            padding: 4px 2px 2px;
-            -moz-appearance: textfield;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .games-input::-webkit-inner-spin-button,
-        .games-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-        .p1-row .games-input { color: var(--green); caret-color: var(--green); }
-        .p1-row .games-input:focus { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-glow); }
-        .p2-row .games-input { color: var(--blue); caret-color: var(--blue); }
-        .p2-row .games-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-glow); }
-
-        /* ── Set boxes ── */
-        .sets-area {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            padding: 12px;
-        }
-        .set-boxes {
-            display: flex;
             gap: 6px;
-            width: 100%;
         }
+
+        /* the score box (clickable input area) */
         .set-box {
             flex: 1;
-            aspect-ratio: 1;
+            position: relative;
             background: var(--surface);
             border: 1px solid var(--line);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-            transition: border-color 0.15s, background 0.15s, transform 0.1s;
-            min-width: 0;
-            overflow: hidden;
-        }
-        .set-box:active { transform: scale(0.91); }
-        .set-score {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: clamp(16px, 4vw, 26px);
-            color: var(--muted);
-            transition: color 0.2s;
-        }
-
-        /* P1 states */
-        .p1-row .set-box.has-score { border-color: rgba(61,186,122,0.3); }
-        .p1-row .set-box.has-score .set-score { color: var(--green); }
-        .p1-row .set-box.won {
-            background: var(--green-dim);
-            border-color: var(--green);
-            box-shadow: 0 0 12px var(--green-glow);
-        }
-        .p1-row .set-box.won::after {
-            content: '●';
-            position: absolute;
-            top: 4px; right: 5px;
-            font-size: 5px;
-            color: var(--green);
-        }
-        .p1-row .set-box.current { border-color: rgba(61,186,122,0.5); border-style: dashed; }
-
-        /* P2 states */
-        .p2-row .set-box.has-score { border-color: rgba(61,142,186,0.3); }
-        .p2-row .set-box.has-score .set-score { color: var(--blue); }
-        .p2-row .set-box.won {
-            background: var(--blue-dim);
-            border-color: var(--blue);
-            box-shadow: 0 0 12px var(--blue-glow);
-        }
-        .p2-row .set-box.won::after {
-            content: '●';
-            position: absolute;
-            top: 4px; right: 5px;
-            font-size: 5px;
-            color: var(--blue);
-        }
-        .p2-row .set-box.current { border-color: rgba(61,142,186,0.5); border-style: dashed; }
-
-        /* ── Modal ── */
-        .modal-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 100;
+            border-radius: 10px;
+            height: 52px;
             display: flex; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.2s;
-        }
-        .modal-overlay.open { opacity: 1; pointer-events: auto; }
-        .modal {
-            background: var(--bg2);
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 26px 22px;
-            width: min(310px, 90vw);
-            transform: translateY(12px);
-            transition: transform 0.2s;
-            position: relative;
             overflow: hidden;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+            cursor: text;
         }
-        .modal::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--green), var(--blue));
+        .set-box.has-score { border-color: rgba(61,186,122,0.3); }
+        .p2-col .set-box.has-score { border-color: rgba(61,142,186,0.3); }
+        .set-box.won-box {
+            box-shadow: 0 0 14px var(--green-glow);
+            border-color: var(--green) !important;
+            background: var(--green-dim);
         }
-        .modal-overlay.open .modal { transform: translateY(0); }
-        .modal h3 {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 22px;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            background: linear-gradient(120deg, var(--green), var(--blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .modal-scores {
-            display: flex; gap: 16px; margin-bottom: 18px;
-            align-items: center;
-        }
-        .modal-player { flex: 1; text-align: center; }
-        .modal-player-name {
-            font-size: 10px; color: var(--muted);
-            letter-spacing: 1px; margin-bottom: 12px;
-            text-transform: uppercase;
-        }
-        .modal-input {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 64px; line-height: 1;
-            width: 100%;
-            background: var(--surface);
-            border: 2px solid var(--line);
-            border-radius: 12px;
-            text-align: center;
-            outline: none;
-            padding: 10px 4px 6px;
-            -moz-appearance: textfield;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .modal-input::-webkit-inner-spin-button,
-        .modal-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-        .modal-p1 .modal-input {
-            color: var(--green);
-            caret-color: var(--green);
-        }
-        .modal-p1 .modal-input:focus {
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px var(--green-glow);
-        }
-        .modal-p2 .modal-input {
-            color: var(--blue);
-            caret-color: var(--blue);
-        }
-        .modal-p2 .modal-input:focus {
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px var(--blue-glow);
-        }
-        .modal-divider { color: var(--muted); font-size: 20px; padding-top: 26px; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-        .modal-save {
-            flex: 1; padding: 12px;
-            background: linear-gradient(120deg, var(--green), var(--blue));
-            color: #000;
-            border: none; border-radius: 8px;
-            font-family: 'DM Mono', monospace;
-            font-size: 12px; font-weight: 500;
-            cursor: pointer; letter-spacing: 1px;
-        }
-        .modal-cancel {
-            flex: 1; padding: 12px;
-            background: none; color: var(--muted);
-            border: 1px solid var(--line); border-radius: 8px;
-            font-family: 'DM Mono', monospace;
-            font-size: 12px; cursor: pointer;
+        .p2-col .set-box.won-box {
+            box-shadow: 0 0 14px var(--blue-glow);
+            border-color: var(--blue) !important;
+            background: var(--blue-dim);
         }
 
-        /* ── Action bar ── */
+        /* the actual input inside */
+        .set-input {
+            width: 100%; height: 100%;
+            background: transparent; border: none; outline: none;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px; line-height: 1;
+            text-align: center;
+            color: var(--muted);
+            caret-color: var(--green);
+            -moz-appearance: textfield;
+            cursor: text;
+            padding: 0;
+        }
+        .set-input::-webkit-inner-spin-button,
+        .set-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .set-input:focus { color: var(--text); }
+        .p1-col .set-input.scored { color: var(--green); }
+        .p2-col .set-input.scored { color: var(--blue); }
+        .p2-col .set-input { caret-color: var(--blue); }
+
+        /* won dot */
+        .set-box.won-box::after {
+            content: '●';
+            position: absolute; top: 4px; right: 6px;
+            font-size: 5px; color: var(--green);
+        }
+        .p2-col .set-box.won-box::after { color: var(--blue); }
+
+        /* +/- stepper buttons */
+        .steppers {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+        .step-btn {
+            width: 28px; height: 24px;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 14px; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.1s;
+            line-height: 1;
+        }
+        .step-btn:active { transform: scale(0.88); }
+        .p1-col .step-btn.up:active { background: var(--green); border-color: var(--green); color: #000; }
+        .p2-col .step-btn.up:active { background: var(--blue);  border-color: var(--blue);  color: #000; }
+        .step-btn.down:active { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+        /* ── ACTION BAR ── */
         .action-bar {
             display: flex; gap: 8px;
             padding: 10px 14px;
@@ -378,144 +238,86 @@
         .act-btn {
             flex: 1; padding: 10px 6px;
             border: 1px solid var(--line);
-            background: var(--surface);
-            color: var(--muted);
+            background: var(--surface); color: var(--muted);
             border-radius: 8px;
             font-family: 'DM Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.15s;
+            font-size: 10px; letter-spacing: 0.5px;
+            cursor: pointer; transition: all 0.15s;
         }
         .act-btn:active { background: var(--line); color: var(--text); }
 
-        /* ── Toast ── */
+        /* ── TOAST ── */
         .toast {
-            position: fixed;
-            bottom: 72px; left: 50%;
+            position: fixed; bottom: 72px; left: 50%;
             transform: translateX(-50%) translateY(6px);
-            background: var(--surface);
-            color: var(--text);
+            background: var(--surface); color: var(--text);
             border: 1px solid var(--line);
-            padding: 9px 18px;
-            border-radius: 8px;
-            font-size: 11px;
-            letter-spacing: 0.5px;
+            padding: 9px 18px; border-radius: 8px;
+            font-size: 11px; letter-spacing: 0.5px;
             opacity: 0; pointer-events: none;
-            transition: all 0.25s;
-            z-index: 999;
+            transition: all 0.25s; z-index: 999;
             white-space: nowrap;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* ── Footer ── */
+        /* ── FOOTER ── */
         footer {
-            padding: 10px 20px;
+            padding: 9px 20px;
             border-top: 1px solid var(--line);
             background: var(--bg2);
-            display: flex;
-            justify-content: center;
+            display: flex; justify-content: center;
         }
         .footer-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
+            display: inline-flex; align-items: center; gap: 8px;
             text-decoration: none;
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: color 0.2s;
-            padding: 4px 0;
+            transition: opacity 0.2s;
         }
-        .footer-link:hover { color: var(--green); }
-        .footer-link svg { transition: filter 0.2s; }
-        .footer-link:hover svg { filter: drop-shadow(0 0 4px var(--green)); }
-
-        .undo-hint {
-            font-size: 9px;
-            color: var(--muted);
-            letter-spacing: 1px;
-            text-align: center;
-            padding: 4px 0 2px;
-            opacity: 0;
-            transition: opacity 0.4s;
-            position: relative; z-index: 1;
+        .footer-link:hover { opacity: 0.75; }
+        .hb-logo {
+            width: 22px; height: 22px;
+            object-fit: contain;
         }
-        .undo-hint.show { opacity: 1; }
+        .hb-text {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px; font-weight: 500;
+            letter-spacing: 1.5px;
+            color: #3dba7a;
+        }
     </style>
 </head>
 <body>
 
 <header>
     <div class="logo-wordmark">
-        <!-- Inline logo SVG -->
-        <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <!-- Big blue H outline -->
-            <rect x="12" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
-            <rect x="76" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
-            <rect x="18" y="42" width="64" height="12" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
-            <!-- Small green H inside -->
-            <rect x="33" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
-            <rect x="59" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
-            <rect x="37" y="66" width="26" height="8" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
-            <!-- Green circuit dot top-left -->
-            <line x1="5" y1="5" x2="5" y2="30" stroke="#3dba7a" stroke-width="3"/>
-            <circle cx="5" cy="5" r="5" fill="none" stroke="#3dba7a" stroke-width="3"/>
-            <circle cx="5" cy="5" r="2" fill="white"/>
-            <!-- Blue circuit dot bottom-left -->
-            <line x1="18" y1="90" x2="18" y2="72" stroke="#3dba7a" stroke-width="3"/>
-            <circle cx="18" cy="90" r="6" fill="none" stroke="#3d8eba" stroke-width="3.5"/>
-            <circle cx="18" cy="90" r="2.5" fill="white"/>
-            <!-- Green circuit dot middle-right -->
-            <line x1="82" y1="28" x2="82" y2="50" stroke="#3dba7a" stroke-width="3"/>
-            <circle cx="82" cy="28" r="5" fill="none" stroke="#3dba7a" stroke-width="3"/>
-            <circle cx="82" cy="28" r="2" fill="white"/>
-            <!-- Blue circuit dot bottom-right -->
-            <line x1="95" y1="95" x2="95" y2="65" stroke="#3dba7a" stroke-width="3"/>
-            <circle cx="95" cy="95" r="5" fill="none" stroke="#3d8eba" stroke-width="3.5"/>
-            <circle cx="95" cy="95" r="2" fill="white"/>
-        </svg>
         <span class="logo-text">Gametrack</span>
     </div>
-    <span class="set-label">5-Set Scorer</span>
-    <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
+    <div class="header-right">
+        <span class="version-tag">v1.5</span>
+        <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
+    </div>
 </header>
 
-<div class="set-headers">
-    <div class="set-header-spacer"></div>
-    <div class="set-header-labels" id="set-header-labels"></div>
-</div>
+<!-- Two-column court -->
+<div class="court">
 
-<div class="players">
-    <div class="player-row p1-row" id="p1-row">
-        <div class="player-info">
-            <input type="text" class="player-name-input" id="p1-name" placeholder="Player 1" maxlength="10" value="Player 1">
-            <div class="score-controls">
-                <div class="games-input-wrap">
-                    <input type="number" class="games-input" id="p1-games" min="0" max="999" value="0">
-                    <div class="games-label">games</div>
-                </div>
-            </div>
-        </div>
-        <div class="sets-area" id="p1-sets-area"></div>
+    <!-- Player 1 column -->
+    <div class="player-col p1-col" id="p1-col">
+        <input type="text" class="player-name-input" id="p1-name" placeholder="Player 1" maxlength="12" value="Player 1">
+        <div class="set-row-label">Sets</div>
+        <!-- set items built by JS -->
     </div>
 
-    <div class="player-row p2-row" id="p2-row">
-        <div class="player-info">
-            <input type="text" class="player-name-input" id="p2-name" placeholder="Player 2" maxlength="10" value="Player 2">
-            <div class="score-controls">
-                <div class="games-input-wrap">
-                    <input type="number" class="games-input" id="p2-games" min="0" max="999" value="0">
-                    <div class="games-label">games</div>
-                </div>
-            </div>
-        </div>
-        <div class="sets-area" id="p2-sets-area"></div>
-    </div>
-</div>
+    <!-- Center divider -->
+    <div class="divider"></div>
 
-<div class="undo-hint" id="undo-hint">Tap a set box to edit scores</div>
+    <!-- Player 2 column -->
+    <div class="player-col p2-col" id="p2-col">
+        <input type="text" class="player-name-input" id="p2-name" placeholder="Player 2" maxlength="12" value="Player 2">
+        <div class="set-row-label">Sets</div>
+        <!-- set items built by JS -->
+    </div>
+
+</div>
 
 <div class="action-bar">
     <button class="act-btn" onclick="undoLast()">↩ Undo</button>
@@ -523,244 +325,165 @@
     <button class="act-btn" onclick="exportData()">⬇ Export</button>
 </div>
 
-<!-- Modal -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
-    <div class="modal">
-        <h3 id="modal-title">Set 1</h3>
-        <div class="modal-scores">
-            <div class="modal-player modal-p1">
-                <div class="modal-player-name" id="modal-p1-name">P1</div>
-                <input type="number" class="modal-input" id="modal-p1-score" min="0" max="99" value="0">
-            </div>
-            <div class="modal-divider">—</div>
-            <div class="modal-player modal-p2">
-                <div class="modal-player-name" id="modal-p2-name">P2</div>
-                <input type="number" class="modal-input" id="modal-p2-score" min="0" max="99" value="0">
-            </div>
-        </div>
-        <div class="modal-actions">
-            <button class="modal-cancel" onclick="closeModal()">Cancel</button>
-            <button class="modal-save" onclick="saveModal()">Save Set</button>
-        </div>
-    </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <footer>
     <a class="footer-link" href="https://happybein.com" target="_blank" rel="noopener">
-        <!-- Miniature logo in footer -->
-        <svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <rect x="12" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
-            <rect x="76" y="10" width="12" height="80" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
-            <rect x="18" y="42" width="64" height="12" rx="3" fill="none" stroke="#3d8eba" stroke-width="7"/>
-            <rect x="33" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
-            <rect x="59" y="52" width="8" height="38" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
-            <rect x="37" y="66" width="26" height="8" rx="2" fill="none" stroke="#3dba7a" stroke-width="5"/>
-            <circle cx="5" cy="5" r="4" fill="none" stroke="#3dba7a" stroke-width="2.5"/>
-            <circle cx="5" cy="5" r="1.5" fill="white"/>
-            <circle cx="18" cy="90" r="5" fill="none" stroke="#3d8eba" stroke-width="3"/>
-            <circle cx="18" cy="90" r="2" fill="white"/>
-            <circle cx="82" cy="28" r="4" fill="none" stroke="#3dba7a" stroke-width="2.5"/>
-            <circle cx="82" cy="28" r="1.5" fill="white"/>
-            <circle cx="95" cy="95" r="4" fill="none" stroke="#3d8eba" stroke-width="3"/>
-            <circle cx="95" cy="95" r="1.5" fill="white"/>
-        </svg>
-        happybein.com
+        <img src="hb-logo.png" alt="happybein.com" class="hb-logo">
+        <span class="hb-text">HAPPYBEIN.COM</span>
     </a>
 </footer>
 
 <script>
+const VERSION  = '1.4';
 const NUM_SETS = 5;
 
 let state = {
-    p1Name: 'Player 1', p2Name: 'Player 2',
-    p1Games: 0, p2Games: 0,
-    sets: Array.from({ length: NUM_SETS }, () => ({ p1: 0, p2: 0 })),
+    p1Name: 'Player 1',
+    p2Name: 'Player 2',
+    sets: Array.from({ length: NUM_SETS }, () => ({ p1: null, p2: null })),
     history: []
 };
 
-let modalSet = null;
-let modalScores = { p1: 0, p2: 0 };
-
-function init() {
-    buildSetHeaders();
-    buildSetBoxes();
-    loadState();
-    renderAll();
-
-    document.getElementById('p1-name').addEventListener('input', e => {
-        state.p1Name = e.target.value || 'Player 1';
-        updateNames(); saveState();
-    });
-    document.getElementById('p2-name').addEventListener('input', e => {
-        state.p2Name = e.target.value || 'Player 2';
-        updateNames(); saveState();
-    });
-
-    document.getElementById('p1-games').addEventListener('change', e => {
-        const v = parseInt(e.target.value, 10);
-        saveHist();
-        state.p1Games = isNaN(v) || v < 0 ? 0 : v;
-        renderAll(); saveState();
-    });
-    document.getElementById('p2-games').addEventListener('change', e => {
-        const v = parseInt(e.target.value, 10);
-        saveHist();
-        state.p2Games = isNaN(v) || v < 0 ? 0 : v;
-        renderAll(); saveState();
-    });
-
-    setTimeout(() => document.getElementById('undo-hint').classList.add('show'), 600);
-    setTimeout(() => document.getElementById('undo-hint').classList.remove('show'), 4000);
-}
-
-function buildSetHeaders() {
-    const el = document.getElementById('set-header-labels');
-    el.innerHTML = '';
-    for (let i = 0; i < NUM_SETS; i++) {
-        const d = document.createElement('div');
-        d.className = 'set-col-label';
-        d.textContent = 'S' + (i + 1);
-        el.appendChild(d);
-    }
-}
-
-function buildSetBoxes() {
+// ── Build DOM ──────────────────────────────────────────────────────
+function buildCols() {
     ['p1', 'p2'].forEach(p => {
-        const area = document.getElementById(p + '-sets-area');
-        area.innerHTML = '';
-        const row = document.createElement('div');
-        row.className = 'set-boxes';
+        const col = document.getElementById(p + '-col');
         for (let i = 0; i < NUM_SETS; i++) {
+            const item = document.createElement('div');
+            item.className = 'set-item';
+
             const box = document.createElement('div');
             box.className = 'set-box';
-            box.id = p + '-set-' + i;
-            box.innerHTML = '<div class="set-score" id="' + p + '-setscore-' + i + '">—</div>';
-            box.addEventListener('click', () => openModal(i));
-            row.appendChild(box);
+            box.id = p + '-box-' + i;
+
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.inputMode = 'numeric';
+            inp.pattern = '[0-9]*';
+            inp.className = 'set-input';
+            inp.id = p + '-inp-' + i;
+            inp.min = 0; inp.max = 99;
+            inp.autocomplete = 'off';
+
+            // clicking the box focuses the input
+            box.addEventListener('click', () => { inp.focus(); inp.select(); });
+
+            inp.addEventListener('focus', () => { inp.select(); });
+
+            inp.addEventListener('change', () => handleInputChange(p, i, inp));
+            inp.addEventListener('blur',   () => handleInputChange(p, i, inp));
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { inp.blur(); }
+            });
+
+            box.appendChild(inp);
+
+            // stepper buttons
+            const steppers = document.createElement('div');
+            steppers.className = 'steppers';
+
+            const up = document.createElement('button');
+            up.className = 'step-btn up';
+            up.textContent = '+';
+            up.addEventListener('click', () => stepScore(p, i, 1));
+
+            const dn = document.createElement('button');
+            dn.className = 'step-btn down';
+            dn.textContent = '−';
+            dn.addEventListener('click', () => stepScore(p, i, -1));
+
+            steppers.appendChild(up);
+            steppers.appendChild(dn);
+            item.appendChild(box);
+            item.appendChild(steppers);
+            col.appendChild(item);
         }
-        area.appendChild(row);
     });
 }
 
+// ── Score handling ─────────────────────────────────────────────────
+function handleInputChange(player, setIdx, inp) {
+    const raw = inp.value.trim();
+    const val = raw === '' ? null : Math.max(0, parseInt(raw, 10) || 0);
+    saveHist();
+    state.sets[setIdx][player] = val;
+    renderAll();
+    saveState();
+}
+
+function stepScore(player, setIdx, delta) {
+    saveHist();
+    const cur = state.sets[setIdx][player];
+    state.sets[setIdx][player] = Math.max(0, (cur === null ? 0 : cur) + delta);
+    renderAll();
+    saveState();
+}
+
+// ── Render ─────────────────────────────────────────────────────────
 function renderAll() {
-    document.getElementById('p1-games').value = state.p1Games;
-    document.getElementById('p2-games').value = state.p2Games;
     document.getElementById('p1-name').value = state.p1Name;
     document.getElementById('p2-name').value = state.p2Name;
-    updateNames();
 
-    const nextEmpty = nextEmptySet();
     for (let i = 0; i < NUM_SETS; i++) {
         const s = state.sets[i];
-        const isEmpty = s.p1 === 0 && s.p2 === 0;
         ['p1', 'p2'].forEach(p => {
-            const box = document.getElementById(p + '-set-' + i);
-            const score = document.getElementById(p + '-setscore-' + i);
+            const inp = document.getElementById(p + '-inp-' + i);
+            const box = document.getElementById(p + '-box-' + i);
             const val = s[p];
             const opp = p === 'p1' ? s.p2 : s.p1;
-            score.textContent = isEmpty ? '—' : val;
-            box.className = 'set-box';
-            if (!isEmpty) {
-                box.classList.add('has-score');
-                if (val > opp) box.classList.add('won');
+            const hasScore = val !== null;
+            const won = hasScore && opp !== null && val > opp;
+
+            // Only update value if input is not focused (avoid clobbering live typing)
+            if (document.activeElement !== inp) {
+                inp.value = hasScore ? val : '';
             }
-            if (i === nextEmpty) box.classList.add('current');
+            inp.classList.toggle('scored', hasScore);
+            box.classList.toggle('has-score', hasScore);
+            box.classList.toggle('won-box', won);
         });
     }
 }
 
-function nextEmptySet() {
-    for (let i = 0; i < NUM_SETS; i++) {
-        if (state.sets[i].p1 === 0 && state.sets[i].p2 === 0) return i;
-    }
-    return -1;
-}
-
-function updateNames() {
-    document.getElementById('modal-p1-name').textContent = state.p1Name;
-    document.getElementById('modal-p2-name').textContent = state.p2Name;
-}
-
-function openModal(setIndex) {
-    modalSet = setIndex;
-    modalScores = { ...state.sets[setIndex] };
-    document.getElementById('modal-title').textContent = 'Set ' + (setIndex + 1);
-    const p1in = document.getElementById('modal-p1-score');
-    const p2in = document.getElementById('modal-p2-score');
-    p1in.value = modalScores.p1;
-    p2in.value = modalScores.p2;
-    document.getElementById('modal-overlay').classList.add('open');
-    // auto-focus first input, select all; Enter on either input saves
-    setTimeout(() => { p1in.focus(); p1in.select(); }, 120);
-    [p1in, p2in].forEach(inp => {
-        inp.onkeydown = e => { if (e.key === 'Enter') saveModal(); };
+// ── Undo / history ────────────────────────────────────────────────
+function saveHist() {
+    state.history.push({
+        p1Name: state.p1Name, p2Name: state.p2Name,
+        sets: state.sets.map(s => ({ ...s }))
     });
-}
-
-function saveModal() {
-    const p1val = parseInt(document.getElementById('modal-p1-score').value, 10);
-    const p2val = parseInt(document.getElementById('modal-p2-score').value, 10);
-    saveHist();
-    state.sets[modalSet] = {
-        p1: isNaN(p1val) || p1val < 0 ? 0 : p1val,
-        p2: isNaN(p2val) || p2val < 0 ? 0 : p2val
-    };
-    renderAll(); saveState();
-    closeModal();
-    showToast('Set ' + (modalSet + 1) + ' saved');
-}
-
-function closeModal(e) {
-    if (e && e.target !== document.getElementById('modal-overlay')) return;
-    document.getElementById('modal-overlay').classList.remove('open');
-    modalSet = null;
-}
-
-function confirmReset() {
-    if (confirm('Reset the entire match?')) resetMatch();
-}
-
-function resetMatch() {
-    saveHist();
-    state.p1Games = 0; state.p2Games = 0;
-    state.sets = Array.from({ length: NUM_SETS }, () => ({ p1: 0, p2: 0 }));
-    renderAll(); saveState();
-    showToast('Match reset');
-}
-
-function swapPlayers() {
-    saveHist();
-    [state.p1Name, state.p2Name] = [state.p2Name, state.p1Name];
-    [state.p1Games, state.p2Games] = [state.p2Games, state.p1Games];
-    state.sets = state.sets.map(s => ({ p1: s.p2, p2: s.p1 }));
-    renderAll(); saveState();
-    showToast('Players swapped');
+    if (state.history.length > 30) state.history.shift();
 }
 
 function undoLast() {
-    if (state.history.length === 0) { showToast('Nothing to undo'); return; }
+    if (!state.history.length) { showToast('Nothing to undo'); return; }
     const prev = state.history.pop();
-    Object.assign(state, { ...prev, history: state.history });
+    state.p1Name = prev.p1Name; state.p2Name = prev.p2Name;
     state.sets = prev.sets.map(s => ({ ...s }));
     renderAll(); saveState();
     showToast('Undone');
 }
 
-function saveHist() {
-    state.history.push({
-        p1Games: state.p1Games, p2Games: state.p2Games,
-        p1Name: state.p1Name, p2Name: state.p2Name,
-        sets: state.sets.map(s => ({ ...s }))
-    });
-    if (state.history.length > 20) state.history.shift();
+// ── Actions ───────────────────────────────────────────────────────
+function confirmReset() {
+    if (confirm('Reset the entire match?')) resetMatch();
+}
+function resetMatch() {
+    saveHist();
+    state.sets = Array.from({ length: NUM_SETS }, () => ({ p1: null, p2: null }));
+    renderAll(); saveState(); showToast('Match reset');
+}
+
+function swapPlayers() {
+    saveHist();
+    [state.p1Name, state.p2Name] = [state.p2Name, state.p1Name];
+    state.sets = state.sets.map(s => ({ p1: s.p2, p2: s.p1 }));
+    renderAll(); saveState(); showToast('Players swapped');
 }
 
 function exportData() {
-    const rows = ['Set,Player 1 (' + state.p1Name + '),Player 2 (' + state.p2Name + ')'];
-    state.sets.forEach((s, i) => rows.push((i+1) + ',' + s.p1 + ',' + s.p2));
-    rows.push('', 'Games,' + state.p1Games + ',' + state.p2Games);
+    const rows = ['Set,' + state.p1Name + ',' + state.p2Name];
+    state.sets.forEach((s, i) => rows.push((i+1) + ',' + (s.p1 ?? '') + ',' + (s.p2 ?? '')));
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -770,25 +493,45 @@ function exportData() {
     showToast('Exported!');
 }
 
+// ── Persist ───────────────────────────────────────────────────────
 function saveState() {
-    try { localStorage.setItem('gt_state', JSON.stringify(state)); } catch(e) {}
+    try { localStorage.setItem('gt_v13', JSON.stringify(state)); } catch(e) {}
 }
 function loadState() {
     try {
-        const raw = localStorage.getItem('gt_state');
+        const raw = localStorage.getItem('gt_v13');
         if (!raw) return;
         const s = JSON.parse(raw);
-        if (s.sets && s.sets.length === NUM_SETS) Object.assign(state, s);
+        if (s.sets && s.sets.length === NUM_SETS) {
+            state.p1Name = s.p1Name || 'Player 1';
+            state.p2Name = s.p2Name || 'Player 2';
+            state.sets   = s.sets.map(x => ({ p1: x.p1 ?? null, p2: x.p2 ?? null }));
+        }
     } catch(e) {}
 }
 
+// ── Toast ─────────────────────────────────────────────────────────
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
+    setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-init();
+// ── Name listeners ────────────────────────────────────────────────
+function initNameListeners() {
+    document.getElementById('p1-name').addEventListener('input', e => {
+        state.p1Name = e.target.value || 'Player 1'; saveState();
+    });
+    document.getElementById('p2-name').addEventListener('input', e => {
+        state.p2Name = e.target.value || 'Player 2'; saveState();
+    });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+buildCols();
+loadState();
+renderAll();
+initNameListeners();
 </script>
 </body>
 </html>
