@@ -688,6 +688,17 @@ function renderTimer() {
     display.textContent = m + ':' + s;
     display.classList.toggle('running', timerRunning);
     toggle.textContent = timerRunning ? '⏸' : '▶';
-    to
+    toggle.classList.toggle('running', timerRunning);
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+buildCols();
+loadState();
+renderAll();
+initNameListeners();
+</script>
+
 <!-- HappyBein backlink -->
-<a href="https://happybein.com" target="_blank" rel="noopener" aria-label="HappyBein" style="position:fixed;bottom:14px;right:14px;width:30px;height:30px;border-radius:50%;background:#2ABFBF;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Nunito,Arial,sans-serif;font-weight:900;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(42,191,191,0.4);z-index:9999;opacity:0.85;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">H</a>
+<a href="https://happybein.com" target="_blank" rel="noopener" aria-label="HappyBein" style="position:fixed;bottom:14px;right:14px;width:30px;height:30px;border-radius:50%;background:#2ABFBF;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Nunito,Arial,sans-serif;font-weight:900;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(42,191,191,0.4);z-index:9999;opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">H</a>
+</body>
+</html>
