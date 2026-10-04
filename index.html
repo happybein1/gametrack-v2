@@ -23,6 +23,20 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          reg.addEventListener('updatefound', () => {
+            const sw = reg.installing;
+            if (!sw) return;
+            sw.addEventListener('statechange', () => {
+              if (sw.state === 'activated') window.location.reload();
+            });
+          });
+        }).catch(() => {});
+        navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+      }
+    </script>
 
     <!-- Open Graph — absolute URLs required for crawlers -->
     <meta property="og:type" content="website">
@@ -391,7 +405,27 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-TJFL5YQ705', { anonymize_ip: true });
+      // Owner-traffic marker: the flag is set when the owner signs in to IntentFlow or
+      // ShopTools (cookie shared across *.yeahvibe.com); this app only reads it, so the
+      // owner's own visits are tagged traffic_type=internal (GA4 "Internal traffic"
+      // data filter) and internal_user=true (custom dimension).
+      var yvInternal = false;
+      try { yvInternal = localStorage.getItem('yv_internal') === '1'; } catch (e) {}
+      yvInternal = yvInternal || /(?:^|;\s*)yv_internal=1/.test(document.cookie || '');
+      // Suspected-bot marker: headless/automation browsers and crawler user agents that run
+      // JS (GA4 already drops the IAB known-bot list). Best-effort; tagged, not blocked.
+      function yvIsBot() {
+        try {
+          if (navigator.webdriver) return true;
+          var ua = navigator.userAgent || '';
+          return /HeadlessChrome|PhantomJS|Lighthouse|\bbot\b|\bcrawler\b|\bspider\b|googlebot|bingbot|yandexbot|baiduspider|duckduckbot|applebot|ahrefsbot|semrushbot|mj12bot|dotbot|petalbot|bytespider|gptbot|claudebot|ccbot|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|telegrambot|python-requests|curl\/|wget\/|go-http-client|axios\/|node-fetch|pingdom|uptimerobot/i.test(ua);
+        } catch (e) { return false; }
+      }
+      var yvBot = yvIsBot();
+      var yvType = yvInternal ? 'internal' : (yvBot ? 'bot' : '');
+      gtag('config', 'G-TJFL5YQ705', yvType ? { anonymize_ip: true, traffic_type: yvType } : { anonymize_ip: true });
+      if (yvInternal) gtag('set', 'user_properties', { internal_user: 'true' });
+      else if (yvBot) gtag('set', 'user_properties', { bot_suspect: 'true' });
     </script>
 </head>
 <body>
@@ -401,7 +435,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v2.3</span>
+        <span class="version-tag">v2.6</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>
