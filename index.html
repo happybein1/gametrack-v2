@@ -400,7 +400,119 @@
     </style>
 
     <!-- GA4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TJFL5YQ705"></script>
+    <!-- GA4 loads only after the visitor accepts (yv-consent v1; source: _shared/consent.js) -->
+<script>
+(function (w, d) {
+  var GA = 'G-TJFL5YQ705', PRIVACY = 'https://happybein.com/privacy', KEY = 'yv_consent', DAYS = 180;
+  var TEXT = {
+    en: { t: 'We would like to use Google Analytics (cookies) to see which parts of this site get used. No ads, and your data is never sold. You can change your mind at any time.', a: 'Accept', r: 'Decline', p: 'Privacy policy', h: 'Cookies' },
+    nl: { t: 'We willen Google Analytics (cookies) gebruiken om te zien welke onderdelen van deze site worden gebruikt. Geen advertenties en je gegevens worden nooit verkocht. Je kunt je keuze altijd wijzigen.', a: 'Accepteren', r: 'Weigeren', p: 'Privacybeleid', h: 'Cookies' },
+    fr: { t: 'Nous aimerions utiliser Google Analytics (cookies) pour savoir quelles parties du site sont utilisées. Pas de publicité, et vos données ne sont jamais vendues. Vous pouvez changer d’avis à tout moment.', a: 'Accepter', r: 'Refuser', p: 'Politique de confidentialité', h: 'Cookies' },
+    es: { t: 'Nos gustaría usar Google Analytics (cookies) para saber qué partes del sitio se utilizan. Sin anuncios y tus datos nunca se venden. Puedes cambiar de opinión en cualquier momento.', a: 'Aceptar', r: 'Rechazar', p: 'Política de privacidad', h: 'Cookies' }
+  };
+
+  /* ---- stored choice ---- */
+  function cookieDomain() {
+    var h = w.location.hostname, p = h.split('.');
+    if (p.length < 2 || /^[\d.]+$/.test(h) || h === 'localhost') return '';
+    return '; domain=.' + p.slice(-2).join('.');
+  }
+  function read() {
+    var raw = null, m = d.cookie.match(/(?:^|; )yv_consent=([^;]*)/);
+    if (m) raw = decodeURIComponent(m[1]);
+    if (!raw) { try { raw = w.localStorage.getItem(KEY); } catch (e) {} }
+    if (!raw) return null;
+    var parts = raw.split(':'), v = parts[0], ts = +parts[1] || 0;
+    if ((v !== 'granted' && v !== 'denied') || !ts || Date.now() - ts > DAYS * 864e5) return null;
+    return v;
+  }
+  function write(v) {
+    var val = v + ':' + Date.now();
+    try { d.cookie = KEY + '=' + encodeURIComponent(val) + '; max-age=' + DAYS * 86400 + '; path=/' + cookieDomain() + '; SameSite=Lax' + (w.location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+    try { w.localStorage.setItem(KEY, val); } catch (e) {}
+  }
+  function clearGaCookies() {
+    var names = d.cookie.split('; ').map(function (c) { return c.split('=')[0]; }).filter(function (n) { return n === '_ga' || n.indexOf('_ga_') === 0 || n === '_gid'; });
+    var p = w.location.hostname.split('.'), doms = ['', '; domain=' + w.location.hostname];
+    if (p.length >= 2) doms.push('; domain=.' + p.slice(-2).join('.'));
+    names.forEach(function (n) { doms.forEach(function (dm) { d.cookie = n + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/' + dm; }); });
+  }
+
+  /* ---- Google Consent Mode (default state is decided before the page's own gtag('config')) ---- */
+  w.dataLayer = w.dataLayer || [];
+  function gtag() { w.dataLayer.push(arguments); }
+  if (!w.gtag) w.gtag = gtag;
+  var stored = read(), loaded = false;
+  var def = { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: stored === 'granted' ? 'granted' : 'denied' };
+  gtag('consent', 'default', def);
+
+  function loadGA() {
+    if (loaded) return;
+    loaded = true;
+    var s = d.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA;
+    (d.head || d.documentElement).appendChild(s);
+  }
+  function apply(v) {
+    if (v === 'granted') {
+      if (!loaded) {
+        // Drop events queued before consent was given; only 'js' / 'config' / 'set' / consent entries are replayed.
+        for (var i = w.dataLayer.length - 1; i >= 0; i--) { var q = w.dataLayer[i]; if (q && q[0] === 'event') w.dataLayer.splice(i, 1); }
+        def.analytics_storage = 'granted'; loadGA();   // queued 'default' entry is replayed as granted
+      }
+      else { w['ga-disable-' + GA] = false; gtag('consent', 'update', { analytics_storage: 'granted' }); }
+    } else {
+      w['ga-disable-' + GA] = true;
+      if (loaded) gtag('consent', 'update', { analytics_storage: 'denied' });
+      clearGaCookies();
+    }
+  }
+  if (stored === 'granted') loadGA();
+  if (stored === 'denied') w['ga-disable-' + GA] = true;
+
+  /* ---- banner ---- */
+  var box = null;
+  function lang() {
+    var l = (d.documentElement.lang || w.navigator.language || 'en').slice(0, 2).toLowerCase();
+    return TEXT[l] || TEXT.en;
+  }
+  function css() {
+    if (d.getElementById('yvc-css')) return;
+    var s = d.createElement('style');
+    s.id = 'yvc-css';
+    s.textContent =
+      '#yvc{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:2147483000;max-width:520px;margin:0 auto;box-sizing:border-box;padding:14px 16px;border-radius:14px;' +
+      'font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#1f2933;border:1px solid #d5dde0;box-shadow:0 6px 28px rgba(0,0,0,.28)}' +
+      '#yvc p{margin:0 0 12px}#yvc a{color:#0f8f8f;text-decoration:underline}' +
+      '#yvc .yvc-b{display:flex;gap:10px}#yvc button{flex:1;min-height:44px;border-radius:10px;font:700 15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer;border:2px solid #2ABFBF}' +
+      '#yvc .yvc-a{background:#2ABFBF;color:#04302f}#yvc .yvc-r{background:transparent;color:inherit}' +
+      '@media (prefers-color-scheme:dark){#yvc{background:#1b2423;color:#e8f0ef;border-color:#33423f}#yvc a{color:#6fdcd8}#yvc .yvc-a{color:#04302f}}';
+    (d.head || d.documentElement).appendChild(s);
+  }
+  function close() { if (box && box.parentNode) box.parentNode.removeChild(box); box = null; }
+  function show() {
+    if (box || !d.body) return;
+    css();
+    var t = lang();
+    box = d.createElement('div');
+    box.id = 'yvc';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', t.h);
+    box.innerHTML = '<p>' + t.t + (PRIVACY ? ' <a href="' + PRIVACY + '" target="_blank" rel="noopener">' + t.p + '</a>' : '') + '</p>' +
+      '<div class="yvc-b"><button type="button" class="yvc-r">' + t.r + '</button><button type="button" class="yvc-a">' + t.a + '</button></div>';
+    box.querySelector('.yvc-a').onclick = function () { write('granted'); apply('granted'); close(); };
+    box.querySelector('.yvc-r').onclick = function () { write('denied'); apply('denied'); close(); };
+    d.body.appendChild(box);
+  }
+  function ready(fn) { if (d.body) fn(); else d.addEventListener('DOMContentLoaded', fn); }
+
+  w.yvConsentOpen = function () { ready(show); };
+  w.yvConsentState = function () { return read(); };
+  var wantsOpen = /(?:[?&#])cookie-settings\b/.test(w.location.search + w.location.hash);
+  if (!stored || wantsOpen) ready(show);
+})(window, document);
+</script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
@@ -435,7 +547,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v2.6</span>
+        <span class="version-tag">v2.7</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>

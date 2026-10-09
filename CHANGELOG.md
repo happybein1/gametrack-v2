@@ -4,6 +4,14 @@ Moved out of the repo-wide `CLAUDE.md` on 2026-09-25 to keep that file focused o
 
 ---
 
+## v2.7
+
+sw `gametrack-v2-7`; **cookie consent banner; Google Analytics now loads only after "Accept".** Until the visitor answers, nothing is sent to Google and no analytics cookies are set. The choice is remembered for 180 days in a cookie shared across the whole registrable domain (so one answer covers every *.yeahvibe.com app) with a localStorage copy as fallback; "Decline" is as prominent as "Accept"; `window.yvConsentOpen()` (or opening the page with `#cookie-settings`) lets the visitor change their mind, and withdrawing after accepting switches analytics off at once and deletes the `_ga` cookies. Built on Google Consent Mode v2 (default: all denied). Banner text in English, Dutch, French and Spanish by page language. Snippet source: `_shared/consent.js` (inlined into the page; rolled out by `_shared/apply-consent.py`). No data-model change. Events fired before consent are dropped, not replayed after Accept.
+
+**Verification:** consent logic exercised in a simulated browser (jsdom): first visit shows the banner and loads nothing; Accept loads Google and stores the choice; return visit loads straight away with no banner; reopening and declining switches analytics off; a choice older than 180 days asks again. Not yet checked on a phone.
+
+---
+
 ## v2.6
 
 sw `gametrack-v2-6`; **suspected bots are now tagged in GA4.** A best-effort check (automation flag `navigator.webdriver`, headless browsers such as HeadlessChrome, and crawler/HTTP-client user agents; GA4 already drops the IAB known-bot list by itself) makes the GA4 config send `traffic_type=bot` plus the user property `bot_suspect=true`. Nothing is blocked: the hits still arrive, tagged, so a second GA4 "Internal traffic" data filter for the value `bot` can be tested and then activated, and false positives can be reviewed first. The owner's `internal` tag takes priority if both apply. Regular visitors send exactly what they sent before. Verification: inline script parse check only (the bot pattern was not run against real traffic).
