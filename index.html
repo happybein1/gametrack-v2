@@ -25,16 +25,18 @@
     <link rel="manifest" href="manifest.json">
     <script>
       if ('serviceWorker' in navigator) {
+        // 2026-10-27: reload for updates only, not on the first visit (the page is already the newest then).
+        window.yvHadSW = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.register('/sw.js').then(reg => {
           reg.addEventListener('updatefound', () => {
             const sw = reg.installing;
             if (!sw) return;
             sw.addEventListener('statechange', () => {
-              if (sw.state === 'activated') window.location.reload();
+              if (sw.state === 'activated' && window.yvHadSW) window.location.reload();
             });
           });
         }).catch(() => {});
-        navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+        navigator.serviceWorker.addEventListener('controllerchange', () => { if (window.yvHadSW) window.location.reload(); });
       }
     </script>
 
@@ -547,7 +549,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v2.8</span>
+        <span class="version-tag">v2.9</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>
@@ -847,7 +849,7 @@ initNameListeners();
 <!-- HappyBein backlink -->
 #x2B9C; Arcade</a>
 <a href="https://game.yeahvibe.com" style="position:fixed;bottom:14px;right:14px;height:30px;padding:0 12px;border-radius:15px;background:#2ABFBF;color:#fff;display:flex;align-items:center;gap:5px;font-family:Nunito,Arial,sans-serif;font-weight:700;font-size:12px;text-decoration:none;box-shadow:0 2px 8px rgba(42,191,191,0.4);z-index:9999;opacity:0.85;" onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='.85';">&#x2B9C; Arcade</a>
-<!-- Install banner (yv-install v1; source: _shared/install.js) -->
+<!-- Install banner (yv-install v2; source: _shared/install.js) -->
 <script>
 (function (w, d) {
   var KEY = 'yvInstallDone';
@@ -871,9 +873,15 @@ initNameListeners();
   var ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var deferred = null, bar = null;
 
+  function busy() {
+    var c = d.getElementById('yvc');
+    if (c && c.offsetParent !== null) return true;
+    return !!d.querySelector('#welcomeOverlay.open, #tourOverlay.open, .welcome-screen.open, .tour-scrim.open, dialog[open]');
+  }
   function close() { if (bar) bar.remove(); bar = null; }
   function show(withButton) {
     if (bar || done()) return;
+    if (busy()) { setTimeout(function () { show(withButton); }, 2000); return; }
     var css = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147483000;' +
       'max-width:520px;margin:0 auto;background:#16323A;color:#fff;border-radius:16px;padding:14px 44px 14px 16px;' +
       'box-shadow:0 10px 30px rgba(0,0,0,.3);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;';

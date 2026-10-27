@@ -5,6 +5,11 @@ Moved out of the repo-wide `CLAUDE.md` on 2026-09-25 to keep that file focused o
 ---
 
 
+
+## v2.9
+
+**No reload on the first visit** (owner, 2026-10-27: IntentFlow's first open "not so fluid, many screens popping up and changing very fast"). The page reloaded itself whenever a service worker took control, including the very first visit, when there is nothing to update (the page already came from the network). Now `window.yvHadSW` remembers whether a worker already controlled the page at load, and the `activated` / `controllerchange` reloads only fire when it did: updates still arrive with a reload, a first visit no longer blinks. The install banner (`yv-install` v2) now also waits while another first-open screen is showing (cookie banner, welcome or tour, any open dialog), so a first visit shows one thing at a time. Service-worker cache bumped.
+
 ## v2.8
 
 **Install banner on first open** (owner, 2026-10-27: every app should offer installing it). The shared `yv-install` snippet (`_shared/install.js`, rolled out by `_shared/apply-install.py`) is inlined before `</body>`: on Android/desktop Chrome, Edge and Samsung Internet an "Install" button opens the browser's own install prompt; on iPhone/iPad a hint says "tap Share, then Add to Home Screen"; both link to the YeahDev install video. Shown until the app is installed or the banner is closed (localStorage `yvInstallDone`), never when the app already runs installed (standalone, iOS home screen, Capacitor/TWA). Texts in en/fr/nl/es from the browser language. Service-worker cache bumped.
