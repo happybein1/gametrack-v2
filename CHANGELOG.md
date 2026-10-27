@@ -4,6 +4,11 @@ Moved out of the repo-wide `CLAUDE.md` on 2026-09-25 to keep that file focused o
 
 ---
 
+
+## v2.8
+
+**Install banner on first open** (owner, 2026-10-27: every app should offer installing it). The shared `yv-install` snippet (`_shared/install.js`, rolled out by `_shared/apply-install.py`) is inlined before `</body>`: on Android/desktop Chrome, Edge and Samsung Internet an "Install" button opens the browser's own install prompt; on iPhone/iPad a hint says "tap Share, then Add to Home Screen"; both link to the YeahDev install video. Shown until the app is installed or the banner is closed (localStorage `yvInstallDone`), never when the app already runs installed (standalone, iOS home screen, Capacitor/TWA). Texts in en/fr/nl/es from the browser language. Service-worker cache bumped.
+
 ## v2.7
 
 sw `gametrack-v2-7`; **cookie consent banner; Google Analytics now loads only after "Accept".** Until the visitor answers, nothing is sent to Google and no analytics cookies are set. The choice is remembered for 180 days in a cookie shared across the whole registrable domain (so one answer covers every *.yeahvibe.com app) with a localStorage copy as fallback; "Decline" is as prominent as "Accept"; `window.yvConsentOpen()` (or opening the page with `#cookie-settings`) lets the visitor change their mind, and withdrawing after accepting switches analytics off at once and deletes the `_ga` cookies. Built on Google Consent Mode v2 (default: all denied). Banner text in English, Dutch, French and Spanish by page language. Snippet source: `_shared/consent.js` (inlined into the page; rolled out by `_shared/apply-consent.py`). No data-model change. Events fired before consent are dropped, not replayed after Accept.
