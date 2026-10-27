@@ -6,6 +6,11 @@ Moved out of the repo-wide `CLAUDE.md` on 2026-09-25 to keep that file focused o
 
 
 
+
+## v2.10
+
+**Smaller cookie banner** (owner, 2026-10-27: "make the cookie banner smaller"). The shared yv-consent banner (`_shared/consent.js`) is more compact: shorter text in en/fr/nl/es ("May we use Google Analytics cookies to see which parts get used? No ads, never sold." + privacy link), 440 px wide instead of 520, 13 px text, tighter padding, 36 px buttons. Same choice and behaviour. Service-worker cache bumped.
+
 ## v2.9
 
 **No reload on the first visit** (owner, 2026-10-27: IntentFlow's first open "not so fluid, many screens popping up and changing very fast"). The page reloaded itself whenever a service worker took control, including the very first visit, when there is nothing to update (the page already came from the network). Now `window.yvHadSW` remembers whether a worker already controlled the page at load, and the `activated` / `controllerchange` reloads only fire when it did: updates still arrive with a reload, a first visit no longer blinks. The install banner (`yv-install` v2) now also waits while another first-open screen is showing (cookie banner, welcome or tour, any open dialog), so a first visit shows one thing at a time. Service-worker cache bumped.

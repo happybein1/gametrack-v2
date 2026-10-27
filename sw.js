@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gametrack-v2-9';
+const CACHE_NAME = 'gametrack-v2-10';
 const STATIC_ASSETS = [
   '/', '/index.html', '/manifest.json',
   '/favicon.ico', '/og-image.png', '/hb-logo.png',

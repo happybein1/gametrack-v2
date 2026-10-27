@@ -407,10 +407,10 @@
 (function (w, d) {
   var GA = 'G-TJFL5YQ705', PRIVACY = 'https://happybein.com/privacy', KEY = 'yv_consent', DAYS = 180;
   var TEXT = {
-    en: { t: 'We would like to use Google Analytics (cookies) to see which parts of this site get used. No ads, and your data is never sold. You can change your mind at any time.', a: 'Accept', r: 'Decline', p: 'Privacy policy', h: 'Cookies' },
-    nl: { t: 'We willen Google Analytics (cookies) gebruiken om te zien welke onderdelen van deze site worden gebruikt. Geen advertenties en je gegevens worden nooit verkocht. Je kunt je keuze altijd wijzigen.', a: 'Accepteren', r: 'Weigeren', p: 'Privacybeleid', h: 'Cookies' },
-    fr: { t: 'Nous aimerions utiliser Google Analytics (cookies) pour savoir quelles parties du site sont utilisées. Pas de publicité, et vos données ne sont jamais vendues. Vous pouvez changer d’avis à tout moment.', a: 'Accepter', r: 'Refuser', p: 'Politique de confidentialité', h: 'Cookies' },
-    es: { t: 'Nos gustaría usar Google Analytics (cookies) para saber qué partes del sitio se utilizan. Sin anuncios y tus datos nunca se venden. Puedes cambiar de opinión en cualquier momento.', a: 'Aceptar', r: 'Rechazar', p: 'Política de privacidad', h: 'Cookies' }
+    en: { t: 'May we use Google Analytics cookies to see which parts get used? No ads, never sold.', a: 'Accept', r: 'Decline', p: 'Privacy policy', h: 'Cookies' },
+    nl: { t: 'Mogen we Google Analytics-cookies gebruiken om te zien wat er gebruikt wordt? Geen advertenties, nooit verkocht.', a: 'Accepteren', r: 'Weigeren', p: 'Privacybeleid', h: 'Cookies' },
+    fr: { t: 'Pouvons-nous utiliser les cookies Google Analytics pour voir ce qui est utilisé ? Pas de pub, jamais vendu.', a: 'Accepter', r: 'Refuser', p: 'Politique de confidentialité', h: 'Cookies' },
+    es: { t: '¿Podemos usar cookies de Google Analytics para ver qué se usa? Sin anuncios, nunca se venden.', a: 'Aceptar', r: 'Rechazar', p: 'Política de privacidad', h: 'Cookies' }
   };
 
   /* ---- stored choice ---- */
@@ -484,10 +484,10 @@
     var s = d.createElement('style');
     s.id = 'yvc-css';
     s.textContent =
-      '#yvc{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:2147483000;max-width:520px;margin:0 auto;box-sizing:border-box;padding:14px 16px;border-radius:14px;' +
-      'font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#1f2933;border:1px solid #d5dde0;box-shadow:0 6px 28px rgba(0,0,0,.28)}' +
-      '#yvc p{margin:0 0 12px}#yvc a{color:#0f8f8f;text-decoration:underline}' +
-      '#yvc .yvc-b{display:flex;gap:10px}#yvc button{flex:1;min-height:44px;border-radius:10px;font:700 15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer;border:2px solid #2ABFBF}' +
+      '#yvc{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:2147483000;max-width:440px;margin:0 auto;box-sizing:border-box;padding:10px 12px;border-radius:12px;' +
+      'font:13px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#1f2933;border:1px solid #d5dde0;box-shadow:0 6px 28px rgba(0,0,0,.28)}' +
+      '#yvc p{margin:0 0 8px}#yvc a{color:#0f8f8f;text-decoration:underline}' +
+      '#yvc .yvc-b{display:flex;gap:8px}#yvc button{flex:1;min-height:36px;border-radius:9px;font:700 14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;cursor:pointer;border:2px solid #2ABFBF}' +
       '#yvc .yvc-a{background:#2ABFBF;color:#04302f}#yvc .yvc-r{background:transparent;color:inherit}' +
       '@media (prefers-color-scheme:dark){#yvc{background:#1b2423;color:#e8f0ef;border-color:#33423f}#yvc a{color:#6fdcd8}#yvc .yvc-a{color:#04302f}}';
     (d.head || d.documentElement).appendChild(s);
@@ -549,7 +549,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v2.9</span>
+        <span class="version-tag">v2.10</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>
