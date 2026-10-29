@@ -7,6 +7,11 @@ Moved out of the repo-wide `CLAUDE.md` on 2026-09-25 to keep that file focused o
 
 
 
+
+## v2.11
+
+**Cloudflare visit counter** (owner, 2026-10-29: count every app on happybein.com/admin/stats/). The shared `yv-internal` snippet (`_shared/internal.js`, rolled out by `_shared/apply-internal.py`) is inlined before `</head>`: it loads Cloudflare Web Analytics with the yeahvibe.com site token (cookieless, nothing stored on the device, so no consent needed), except on browsers carrying the owner's `?internal` mark (cookie `yv_internal=1` on .yeahvibe.com), which show a small teal dot under the version number instead. Visits now appear under this app's own address in the stats. Service-worker cache bumped.
+
 ## v2.10
 
 **Smaller cookie banner** (owner, 2026-10-27: "make the cookie banner smaller"). The shared yv-consent banner (`_shared/consent.js`) is more compact: shorter text in en/fr/nl/es ("May we use Google Analytics cookies to see which parts get used? No ads, never sold." + privacy link), 440 px wide instead of 520, 13 px text, tighter padding, 36 px buttons. Same choice and behaviour. Service-worker cache bumped.

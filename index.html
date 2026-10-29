@@ -541,6 +541,74 @@
       if (yvInternal) gtag('set', 'user_properties', { internal_user: 'true' });
       else if (yvBot) gtag('set', 'user_properties', { bot_suspect: 'true' });
     </script>
+<!-- Visit counts (Cloudflare Web Analytics, cookieless) + owner-traffic marker (yv-internal v5; source: _shared/internal.js) -->
+<script>
+(function (w, d) {
+  var p = w.location.hostname.split('.'), dom = p.length >= 2 && !/^[\d.]+$/.test(w.location.hostname) ? '; domain=.' + p.slice(-2).join('.') : '';
+  var here = p.slice(-2).join('.');
+  var m = (w.location.search.match(/[?&]internal(?:=([^&]*))?(?:&|$)/) || [])[0], on = null;
+  if (m) on = !/=off/.test(m);
+  if (on !== null) {
+    try { d.cookie = 'yv_internal=' + (on ? '1' : '') + '; max-age=' + (on ? 31536000 : 0) + '; path=/' + dom + '; SameSite=Lax' + (w.location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+    try { if (on) w.localStorage.setItem('yv_internal', '1'); else w.localStorage.removeItem('yv_internal'); } catch (e) {}
+  }
+  var internal = false;
+  try { internal = w.localStorage.getItem('yv_internal') === '1'; } catch (e) {}
+  if (!internal) internal = /(?:^|;\s*)yv_internal=1/.test(d.cookie || '');
+  if (here !== 'yeahvibe.com') {
+    try {
+      d.cookie.split('; ').map(function (c) { return c.split('=')[0]; })
+        .filter(function (n) { return n === '_ga' || n.indexOf('_ga_') === 0 || n === '_gid' || n === 'yv_consent'; })
+        .forEach(function (n) { ['', '; domain=' + w.location.hostname, dom].forEach(function (x) { d.cookie = n + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/' + x; }); });
+      w.localStorage.removeItem('yv_consent');
+    } catch (e) {}
+  }
+  var CF = { 'happybein.com': 'bc29302dbc214188aebf56490bf4cef4', 'yeahdev.com': 'eb13518849014d5e9fd376c4202f3432', 'yeahvibe.com': '55aea6e64e384cf7b021e272ff38d389' }[here];
+  if (CF && !internal) {
+    var b = d.createElement('script');
+    b.defer = true; b.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    b.setAttribute('data-cf-beacon', JSON.stringify({ token: CF }));
+    (d.head || d.documentElement).appendChild(b);
+  }
+  if (on === null && !internal) return;
+  var others = ['happybein.com', 'yeahvibe.com', 'yeahdev.com'].filter(function (x) { return x !== here; });
+  var A = 'style="color:#6fdcd8"';
+  function pill() {
+    if (!internal) return;
+    var v = d.querySelector('#version-refresh, .yv-version, .header-version, .ver, .version');
+    if (v) {
+      var cs = w.getComputedStyle(v), dot = d.createElement('span');
+      if (cs.position === 'static') v.style.position = 'relative';
+      dot.setAttribute('aria-hidden', 'true');
+      dot.style.cssText = 'position:absolute;left:50%;top:calc(100% - ' + (parseFloat(cs.paddingBottom) || 0) + 'px + 1px);width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#2ABFBF;pointer-events:none';
+      v.appendChild(dot);
+      v.title = (v.title ? v.title + ' · ' : '') + 'Internal: your visits are not counted in the analytics';
+      return;
+    }
+    var b = d.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '&#9679; internal';
+    b.title = 'This browser is marked as internal: your visits are not counted in the analytics';
+    b.style.cssText = 'position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);z-index:2147482999;padding:3px 9px;border-radius:999px;border:0;font:600 11px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#1A3333;color:#6fdcd8;opacity:.75;cursor:pointer';
+    b.onclick = function () { b.remove(); note(true); };
+    d.body.appendChild(b);
+  }
+  function note(info) {
+    var n = d.createElement('div');
+    n.setAttribute('role', 'status');
+    n.style.cssText = 'position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:2147483001;max-width:520px;margin:0 auto;padding:12px 16px;border-radius:12px;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#1A3333;color:#fff;box-shadow:0 6px 28px rgba(0,0,0,.28)';
+    n.innerHTML = (info ? 'This browser is marked as <b>internal</b> on ' + here + ': your visits are left out of the analytics. <a ' + A + ' href="' + w.location.pathname + '?internal=off">Remove the mark</a>'
+                 : on ? '&#10003; This browser is now marked as <b>internal</b> on ' + here + ': your visits are left out of the analytics.'
+                      : 'The internal mark is removed on ' + here + ': your visits count again.') +
+      (info ? '' : ' Also on: ' + others.map(function (x) { return '<a ' + A + ' href="https://' + x + '/?internal' + (on ? '' : '=off') + '">' + x + '</a>'; }).join(' &middot; ')) +
+      ' <button type="button" aria-label="Close" style="float:right;background:none;border:0;color:#fff;font-size:18px;cursor:pointer">&times;</button>';
+    n.querySelector('button').onclick = function () { n.remove(); pill(); };
+    d.body.appendChild(n);
+  }
+  var show = function () { if (on === null) pill(); else note(false); };
+  if (d.body) show(); else d.addEventListener('DOMContentLoaded', show);
+})(window, document);
+</script>
 </head>
 <body>
 
@@ -549,7 +617,7 @@
         <span class="logo-text">Gametrack</span>
     </div>
     <div class="header-right">
-        <span class="version-tag">v2.10</span>
+        <span class="version-tag">v2.11</span>
         <button class="reset-btn" onclick="confirmReset()">↺ Reset</button>
     </div>
 </header>
